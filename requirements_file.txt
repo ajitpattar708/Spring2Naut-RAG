@@ -1,0 +1,45 @@
+# Spring Boot to Micronaut Migration Agent Requirements
+# Install with: pip install -r requirements_file.txt
+# Updated for Python 3.13 compatibility
+
+# Core LangChain and AI (updated to compatible versions)
+langchain>=0.3.0
+langchain-community>=0.3.0
+
+# Vector Database and Embeddings
+chromadb>=0.5.0
+sentence-transformers>=2.7.0
+
+# Code Parsing
+javalang>=0.13.0
+
+# Configuration Parsing
+pyyaml>=6.0.1
+lxml>=5.3.0
+beautifulsoup4>=4.12.3
+
+# Git Integration (for cloning projects)
+gitpython>=3.1.41
+
+# HTTP Requests (for LLM APIs)
+requests>=2.31.0
+
+# Encryption (for protected dataset files)
+cryptography>=41.0.0
+
+# Optional: For OpenAI/Claude/Groq support
+# openai>=1.0.0  # Uncomment if using OpenAI
+# anthropic>=0.18.0  # Uncomment if using Claude
+
+# Data Processing (Python 3.13 compatible - numpy 2.x required)
+numpy>=2.0.0,<3.0.0
+pandas>=2.2.0
+
+# Optional: For advanced features
+# jupyter==1.0.0  # If running in Jupyter
+# ipython==8.12.0
+# notebook==7.0.6
+
+# Note: Ollama should be installed separately
+# Linux/Mac: curl -fsSL https://ollama.com/install.sh | sh
+# Windows: Download from https://ollama.com/download

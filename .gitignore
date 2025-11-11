@@ -1,0 +1,124 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ChromaDB / Vector Database
+migration_db/
+*.db
+*.sqlite3
+
+# Database JSON files (protected - plain text versions excluded)
+# Encrypted .dat files ARE committed (users need them to run agent)
+migration_dataset.json
+migration_dataset_enhanced.json
+fix_dataset_critical.json
+*.json.bak
+*.decrypted.json
+
+# Examples (Spring and Micronaut projects)
+examples/
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Maven
+target/
+.mvn/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Migration reports
+migration-report.json
+
+# Build artifacts (PyInstaller)
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Documentation (only README.md and USER_GUIDE.md are committed)
+*.md
+!README.md
+!USER_GUIDE.md
+
+# Test scripts and utility scripts
+test_*.py
+*_test.py
+verify_*.py
+count_*.py
+dataset_builder.py
+deduplicate_dataset.py
+generate_enhanced_dataset.py
+
+# Debug files
+llm_response_debug.txt
+redis_config_llm_prompt.txt
+*.debug
+*.log.txt
+
+# Deployment files (for future use, not for beta)
+Procfile
+key_server.py
+key_client.py
+key_client_supabase.py
+build_protected.py
+encrypt_dataset.py
+
