@@ -1,8 +1,8 @@
-# 🚀 User Guide - Spring Boot to Micronaut Migration Agent
+# User Guide - Spring Boot to Micronaut Migration Agent
 
 A simple guide to get started with the migration agent.
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Python 3.8 or higher
 - Maven (for building migrated projects)
@@ -12,7 +12,7 @@ A simple guide to get started with the migration agent.
   - Anthropic Claude API key
   - Groq API key
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Step 1: Install Dependencies
 
@@ -90,27 +90,27 @@ python migration_agent_main.py migrate \
     /path/to/my-spring-app \
     /path/to/my-micronaut-app \
     --spring-version 3.4.5 \
-    --micronaut-version 4.10.1
+    --micronaut-version 4.10.8
 ```
 
-## 📖 Available Commands
+## Available Commands
 
 | Command | Description |
 |---------|-------------|
 | `init` | Initialize knowledge base (first time setup) |
 | `migrate <source> <output> [options]` | Migrate a Spring Boot project to Micronaut |
 | `test` | Test with sample code |
-| `export` | Export knowledge base to dataset file |
-| `merge <dataset.json> [--mode add\|replace]` | Merge dataset into knowledge base |
 
 ### Command Options
 
 - `--spring-version <version>` - Spring Boot version (e.g., 3.4.5)
-- `--micronaut-version <version>` - Micronaut version (e.g., 4.10.1)
+- `--micronaut-version <version>` - Micronaut version (e.g., 4.10.8)
 
-## 🔍 What Gets Migrated
+**Note:** Advanced commands like `export` and `merge` are available for dataset management but not needed for basic usage.
 
-### ✅ Automatically Migrated
+## What Gets Migrated
+
+### Automatically Migrated
 
 - **Annotations**: `@RestController` → `@Controller`, `@GetMapping` → `@Get`, etc.
 - **Dependencies**: Spring Boot → Micronaut equivalents in `pom.xml`
@@ -118,7 +118,7 @@ python migration_agent_main.py migrate \
 - **Code Patterns**: Controllers, Services, Repositories, Configs
 - **Imports**: Spring packages → Micronaut packages
 
-### ⚠️ Manual Steps May Be Required
+### Manual Steps May Be Required
 
 - Complex security configurations
 - Custom Spring AOP
@@ -126,7 +126,7 @@ python migration_agent_main.py migrate \
 - WebSocket/STOMP configurations
 - Multi-module projects
 
-## 📊 After Migration
+## After Migration
 
 1. **Review the migration report** - Check `migration-report.json` in output directory
 2. **Build the project**:
@@ -141,7 +141,7 @@ python migration_agent_main.py migrate \
 4. **Review changes** - Check the diff of migrated files
 5. **Test manually** - Test all API endpoints
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Knowledge Base Not Found
 ```bash
@@ -168,13 +168,12 @@ Add missing Micronaut dependencies to `pom.xml`:
 - Process files in batches
 - Close other applications
 
-## 📚 More Information
+## More Information
 
 - **Full Documentation**: See [README.md](README.md)
-- **Configuration**: See [CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md)
-- **Testing**: See [TESTING_GUIDE.md](TESTING_GUIDE.md)
+- **Configuration**: See Configuration section in README.md
 
-## 💡 Tips
+## Tips
 
 1. **Start Small**: Test with a small module first
 2. **Version Control**: Commit your code before migration

@@ -1,29 +1,29 @@
-# 🚀 Spring Boot to Micronaut Migration Agent
+# Spring Boot to Micronaut Migration Agent
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)](https://github.com/yourusername/Spring2Naut-RAG)
 
-> ⚠️ **Beta Release** - This project is in active development. While functional, it's recommended for testing and feedback. See [GA_READINESS_CHECK.md](GA_READINESS_CHECK.md) for current status.
+> **Beta Release** - This project is in active development. While functional, it's recommended for testing and feedback.
 
 An intelligent AI-powered RAG (Retrieval-Augmented Generation) agent that automatically migrates Spring Boot 3.x.x projects to Micronaut 4.x.x projects with version-specific compatibility handling.
 
-## ✨ Features
+## Features
 
-- 🤖 **AI-Powered Migration** - Uses RAG (Retrieval-Augmented Generation) with LLM fallback for complex transformations
-- 📚 **Knowledge Base** - Vector database (ChromaDB) with 115,000+ migration patterns
-- 🔍 **Semantic Search** - CodeBERT embeddings for accurate pattern matching
-- 🧠 **Multi-LLM Support** - Ollama, OpenAI, Claude, or Groq
-- 🔄 **Version-Aware** - Handles Spring Boot 3.x.x → Micronaut 4.x.x with patch version compatibility
-- 📦 **Dependency Resolution** - Intelligent dependency version mapping
-- ⚙️ **Configuration Migration** - Automatic `application.yml`/`.properties` conversion
-- 🏗️ **Build Validation** - Automatically compiles migrated projects
-- 🎯 **Multi-Agent System** - Specialized agents for dependencies, code, config, and validation
+- **AI-Powered Migration** - Uses RAG (Retrieval-Augmented Generation) with LLM fallback for complex transformations
+- **Knowledge Base** - Vector database (ChromaDB) with 115,000+ migration patterns
+- **Semantic Search** - CodeBERT embeddings for accurate pattern matching
+- **Multi-LLM Support** - Ollama, OpenAI, Claude, or Groq
+- **Version-Aware** - Handles Spring Boot 3.x.x → Micronaut 4.x.x with patch version compatibility
+- **Dependency Resolution** - Intelligent dependency version mapping
+- **Configuration Migration** - Automatic `application.yml`/`.properties` conversion
+- **Build Validation** - Automatically compiles migrated projects
+- **Multi-Agent System** - Specialized agents for dependencies, code, config, and validation
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Quick Start](#quick-start)
-- [User Guide](#user-guide) ⭐ **Start Here**
+- [User Guide](#user-guide) **Start Here**
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
@@ -33,7 +33,7 @@ An intelligent AI-powered RAG (Retrieval-Augmented Generation) agent that automa
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -66,7 +66,7 @@ python migration_agent_main.py migrate \
     --micronaut-version 4.10.8
 ```
 
-## 📖 User Guide
+## User Guide
 
 **For detailed step-by-step instructions, see [USER_GUIDE.md](USER_GUIDE.md)**
 
@@ -78,7 +78,7 @@ The user guide includes:
 - What gets migrated automatically
 - Post-migration checklist
 
-## 📖 Installation
+## Installation
 
 ### Step 1: Install Python Dependencies
 
@@ -131,7 +131,7 @@ python migration_agent_main.py init
 
 This loads the migration dataset into ChromaDB vector database.
 
-## 💻 Usage
+## Usage
 
 ### Migrate a Project
 
@@ -178,7 +178,7 @@ python migration_agent_main.py merge <dataset.json> [--mode add|replace]
 --micronaut-version <version>  Micronaut version (e.g., 4.10.8)
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 The agent can be configured via environment variables:
 
@@ -218,9 +218,9 @@ export CHROMADB_PATH=./migration_db
 export OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-See [CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md) for complete configuration options.
+For complete configuration options, see environment variables section above.
 
-## 🏗️ Architecture
+## Architecture
 
 The migration agent uses a multi-agent system:
 
@@ -239,9 +239,9 @@ MigrationOrchestrator
 - **Dataset:** 115,000+ migration patterns
 - **LLM Fallback:** For complex transformations not in dataset
 
-See [ARCHITECTURE_COMPARISON.md](ARCHITECTURE_COMPARISON.md) for detailed architecture.
+The agent uses a RAG (Retrieval-Augmented Generation) approach with vector database for pattern matching and LLM fallback for complex transformations.
 
-## 📚 Examples
+## Examples
 
 ### Example Project
 
@@ -268,9 +268,7 @@ python migration_agent_main.py migrate \
     --micronaut-version 4.10.8
 ```
 
-## 🧪 Testing
-
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive testing instructions.
+## Testing
 
 ### Quick Test
 
@@ -294,9 +292,9 @@ cd examples/micronaut
 mvn clean compile
 ```
 
-## 🔧 What Gets Migrated
+## What Gets Migrated
 
-### ✅ Supported Migrations
+### Supported Migrations
 
 - **Annotations:** `@RestController` → `@Controller`, `@GetMapping` → `@Get`, etc.
 - **Dependencies:** Spring Boot → Micronaut equivalents
@@ -307,41 +305,125 @@ mvn clean compile
 - **Redis:** Spring Data Redis → Micronaut Redis
 - **Data Source:** Spring DataSource → Micronaut DataSource
 
-### ⚠️ Limitations
+### Limitations
 
 - Currently supports **Maven** only (Gradle support coming soon)
 - **Java** only (Kotlin support coming soon)
 - Single-module projects (multi-module support coming soon)
 - Some Spring Cloud features require manual migration
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! We'd love your help improving migration patterns.
 
 ### Adding Migration Patterns
 
-To add new migration patterns, edit `migration_dataset.json`:
+Since datasets are encrypted, please contribute by:
+
+1. **Create a JSON file** with your migration patterns following the enhanced dataset format:
+
+**Format 1: Enhanced Dataset Format (Recommended)**
+
+This is the format used in the enhanced dataset. It's an array of migration entries:
+
+```json
+[
+  {
+    "id": "unique-id-1",
+    "migration_type": "annotation",
+    "spring_pattern": "@RestController",
+    "micronaut_pattern": "@Controller",
+    "spring_code": "@RestController\n@RequestMapping(\"/api/users\")\npublic class UserController {\n    @GetMapping\n    public List<User> getUsers() {\n        return userService.findAll();\n    }\n}",
+    "micronaut_code": "@Controller(\"/api/users\")\npublic class UserController {\n    @Get\n    public List<User> getUsers() {\n        return userService.findAll();\n    }\n}",
+    "source_framework": "spring",
+    "target_framework": "micronaut",
+    "spring_version": "3.4.5",
+    "micronaut_version": "4.10.8",
+    "description": "Spring 3.4.5 → Micronaut 4.10.8 migration: @RestController → @Controller",
+    "explanation": "REST controller annotation migration with request mapping",
+    "complexity": "low"
+  },
+  {
+    "id": "unique-id-2",
+    "migration_type": "dependency",
+    "spring_pattern": "spring-boot-starter-web",
+    "micronaut_pattern": "micronaut-http-server-netty",
+    "spring_code": "<dependency>\n  <groupId>org.springframework.boot</groupId>\n  <artifactId>spring-boot-starter-web</artifactId>\n  <version>3.4.5</version>\n</dependency>",
+    "micronaut_code": "<dependency>\n  <groupId>io.micronaut</groupId>\n  <artifactId>micronaut-http-server-netty</artifactId>\n  <version>4.10.8</version>\n</dependency>",
+    "source_framework": "spring",
+    "target_framework": "micronaut",
+    "spring_version": "3.4.5",
+    "micronaut_version": "4.10.8",
+    "description": "Web server dependency migration",
+    "explanation": "Spring Boot web starter to Micronaut HTTP server",
+    "complexity": "high"
+  },
+  {
+    "id": "unique-id-3",
+    "migration_type": "code_pattern",
+    "spring_code": "@Autowired\nprivate UserService userService;",
+    "micronaut_code": "@Inject\nprivate UserService userService;",
+    "source_framework": "spring",
+    "target_framework": "micronaut",
+    "spring_version": "3.4.5",
+    "micronaut_version": "4.10.8",
+    "description": "Dependency injection annotation migration",
+    "explanation": "Spring @Autowired to Micronaut @Inject",
+    "complexity": "low"
+  }
+]
+```
+
+**Required fields:**
+- `id`: Unique identifier
+- `migration_type`: "annotation", "dependency", "code_pattern", "config", etc.
+- `spring_code` and `micronaut_code`: Actual code examples
+- `source_framework`: "spring" or "Spring Boot"
+- `target_framework`: "micronaut" or "Micronaut"
+- `spring_version` and `micronaut_version`: Version numbers
+- `explanation`: Description of the migration
+
+**Format 2: Standard Format (Also Accepted)**
 
 ```json
 {
-  "spring_pattern": "@YourAnnotation",
-  "micronaut_pattern": "@MicronautEquivalent",
-  "category": "annotation",
-  "description": "Migration description",
-  "complexity": "low|medium|high"
+  "annotations": [
+    {
+      "spring_pattern": "@YourAnnotation",
+      "micronaut_pattern": "@MicronautEquivalent",
+      "category": "annotation",
+      "description": "Migration description",
+      "complexity": "low"
+    }
+  ],
+  "dependencies": [
+    {
+      "spring_pattern": "spring-boot-starter-web",
+      "micronaut_pattern": "micronaut-http-server-netty",
+      "category": "dependency",
+      "description": "Web server dependency",
+      "complexity": "low"
+    }
+  ]
 }
 ```
 
-Then run:
-```bash
-python migration_agent_main.py init
-```
+2. **Submit a Pull Request** with your JSON file
+3. We'll review, merge, and encrypt it into the dataset
 
-## 📄 License
+**Sample patterns to contribute:**
+- New annotation mappings
+- Dependency version mappings
+- Code transformation patterns
+- Configuration conversions
+
+**Note:** The main dataset is encrypted for IP protection, but we welcome contributions in plain JSON format via PRs!
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Micronaut Framework** - https://micronaut.io
 - **Spring Boot** - https://spring.io/projects/spring-boot
@@ -349,13 +431,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **CodeBERT** - Code embedding model
 - **Ollama** - Local LLM server
 
-## 📞 Support
+## Support
 
 - **Issues:** [GitHub Issues](https://github.com/yourusername/Spring2Naut-RAG/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/yourusername/Spring2Naut-RAG/discussions)
-- **Documentation:** See `docs/` directory
+- **Documentation:** See [USER_GUIDE.md](USER_GUIDE.md) for detailed instructions
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Gradle build tool support
 - [ ] Kotlin code migration
@@ -366,7 +448,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Interactive migration wizard
 - [ ] Migration preview mode
 
----
-
-**Made with ❤️ for the Micronaut community**
 
