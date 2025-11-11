@@ -49,7 +49,12 @@ fix_dataset_critical.json
 *.decrypted.json
 
 # Examples (Spring and Micronaut projects)
-examples/
+# Allow directory structure and README but exclude actual project files
+examples/spring/*
+!examples/spring/.gitkeep
+examples/micronaut/*
+!examples/micronaut/.gitkeep
+!examples/README.md
 
 # Logs
 *.log
