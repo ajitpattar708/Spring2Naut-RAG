@@ -1,4 +1,4 @@
-"""
+﻿"""
 Spring Boot 3.x to Micronaut 4.x Migration Agent
 Complete RAG-based implementation for Colab/Kaggle
 
@@ -75,6 +75,9 @@ class MigrationConfig:
     DATASET_FILE = os.getenv("DATASET_FILE", "./migration_dataset.json")
     ENHANCED_DATASET_FILE = os.getenv("ENHANCED_DATASET_FILE", "./migration_dataset_enhanced.json")
     
+    # Encryption key for protected datasets
+    DATASET_KEY = os.getenv("DATASET_ENCRYPTION_PASSWORD", os.getenv("DATASET_KEY", ""))
+    
     # Performance Configuration
     LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", "60"))  # Timeout in seconds
     LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))  # Low temperature for deterministic code
@@ -88,7 +91,7 @@ class VersionCompatibilityMatrix:
     
     # API compatibility by version
     API_COMPATIBILITY = {
-        # Spring Boot 3.4.x → Micronaut 4.10.x
+        # Spring Boot 3.4.x â†’ Micronaut 4.10.x
         ("3.4.5", "4.10.1"): {
             "deprecated_apis": [],
             "new_apis": ["@Requires", "@EachProperty"],
@@ -100,14 +103,14 @@ class VersionCompatibilityMatrix:
                 }
             }
         },
-        # Spring Boot 3.4.x → Micronaut 4.8.x
+        # Spring Boot 3.4.x â†’ Micronaut 4.8.x
         ("3.4.5", "4.8.9"): {
             "deprecated_apis": [],
             "new_apis": [],
             "breaking_changes": [],
             "version_specific_patterns": {}
         },
-        # Spring Boot 3.3.x → Micronaut 4.5.x
+        # Spring Boot 3.3.x â†’ Micronaut 4.5.x
         ("3.3.0", "4.5.0"): {
             "deprecated_apis": [],
             "new_apis": [],
@@ -623,9 +626,9 @@ class MigrationKnowledgeBase:
                     existing_patterns.add((category, pattern))
         
         print(f"[INFO] Merged datasets:")
-        print(f"  • Main dataset: {len(main_dataset.get('annotations', []))} annotations, {len(main_dataset.get('types', []))} types")
-        print(f"  • Enhanced dataset: {len(enhanced_standard.get('annotations', []))} annotations, {len(enhanced_standard.get('types', []))} types")
-        print(f"  • Merged result: {len(merged['annotations'])} annotations, {len(merged['types'])} types")
+        print(f"  â€¢ Main dataset: {len(main_dataset.get('annotations', []))} annotations, {len(main_dataset.get('types', []))} types")
+        print(f"  â€¢ Enhanced dataset: {len(enhanced_standard.get('annotations', []))} annotations, {len(enhanced_standard.get('types', []))} types")
+        print(f"  â€¢ Merged result: {len(merged['annotations'])} annotations, {len(merged['types'])} types")
         
         return merged
     
@@ -793,12 +796,12 @@ class MigrationKnowledgeBase:
         self.code_pattern_collection = self._store_rules(code_pattern_rules, self.code_pattern_collection, clear_existing=True) or self.code_pattern_collection
         
         print(f"[OK] Knowledge base initialized from dataset:")
-        print(f"  • {len(annotation_rules)} annotations")
-        print(f"  • {len(dependency_rules)} dependencies")
-        print(f"  • {len(config_rules)} configs")
-        print(f"  • {len(import_rules)} import mappings")
-        print(f"  • {len(type_rules)} type mappings")
-        print(f"  • {len(code_pattern_rules)} code patterns")
+        print(f"  â€¢ {len(annotation_rules)} annotations")
+        print(f"  â€¢ {len(dependency_rules)} dependencies")
+        print(f"  â€¢ {len(config_rules)} configs")
+        print(f"  â€¢ {len(import_rules)} import mappings")
+        print(f"  â€¢ {len(type_rules)} type mappings")
+        print(f"  â€¢ {len(code_pattern_rules)} code patterns")
     
     def _convert_to_migration_rule(self, data: Dict) -> Optional[MigrationRule]:
         """Convert dataset entry to MigrationRule - supports both old and new formats"""
@@ -1376,7 +1379,7 @@ class MigrationKnowledgeBase:
                 spring_pattern="RedisConfig class with RedisConnectionFactory and RedisTemplate",
                 micronaut_pattern="Convert RedisConfig to use io.lettuce.core.RedisClient and RedisCommands",
                 category="code_pattern",
-                description="CRITICAL: RedisConfig must convert ALL three methods: redisConnectionFactory() → redisClient(), redisTemplate() → redisCommands(), cacheManager() → CacheManager. Class body MUST NOT be empty. Must include all @Property fields and all three @Bean methods.",
+                description="CRITICAL: RedisConfig must convert ALL three methods: redisConnectionFactory() â†’ redisClient(), redisTemplate() â†’ redisCommands(), cacheManager() â†’ CacheManager. Class body MUST NOT be empty. Must include all @Property fields and all three @Bean methods.",
                 complexity="high",
                 example_spring="@Configuration\n@EnableCaching\npublic class RedisConfig {\n    @Value(\"${spring.redis.host:localhost}\")\n    private String redisHost;\n    @Bean\n    public RedisConnectionFactory redisConnectionFactory() {\n        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();\n        config.setHostName(redisHost);\n        JedisConnectionFactory factory = new JedisConnectionFactory(config);\n        return factory;\n    }\n    @Bean\n    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {\n        RedisTemplate<String, Object> template = new RedisTemplate<>();\n        template.setConnectionFactory(factory);\n        return template;\n    }\n    @Bean\n    public CacheManager cacheManager(RedisConnectionFactory factory) {\n        return RedisCacheManager.builder().fromConnectionFactory(factory).build();\n    }\n}",
                 example_micronaut="@Factory\n@Requires(beans = CacheManager.class)\npublic class RedisConfig {\n    @Property(name = \"redis.host\", defaultValue = \"localhost\")\n    private String redisHost;\n    @Bean\n    @Singleton\n    public RedisClient redisClient() {\n        RedisURI uri = RedisURI.builder().withHost(redisHost).build();\n        return RedisClient.create(uri);\n    }\n    @Bean\n    @Singleton\n    public RedisCommands<String, String> redisCommands(RedisClient redisClient) {\n        return redisClient.connect().sync();\n    }\n    @Bean\n    @Singleton\n    public CacheManager cacheManager() {\n        return io.micronaut.cache.DefaultCacheManager.INSTANCE;\n    }\n}"
@@ -1392,12 +1395,12 @@ class MigrationKnowledgeBase:
         self._store_rules(code_pattern_rules, self.code_pattern_collection, clear_existing=True)
         
         print(f"[OK] Knowledge base initialized with hardcoded rules:")
-        print(f"  • {len(annotation_rules)} annotations")
-        print(f"  • {len(dependency_rules)} dependencies")
-        print(f"  • {len(config_rules)} configs")
-        print(f"  • {len(import_rules)} import mappings")
-        print(f"  • {len(type_rules)} type mappings")
-        print(f"  • {len(code_pattern_rules)} code patterns")
+        print(f"  â€¢ {len(annotation_rules)} annotations")
+        print(f"  â€¢ {len(dependency_rules)} dependencies")
+        print(f"  â€¢ {len(config_rules)} configs")
+        print(f"  â€¢ {len(import_rules)} import mappings")
+        print(f"  â€¢ {len(type_rules)} type mappings")
+        print(f"  â€¢ {len(code_pattern_rules)} code patterns")
     
     def _store_rules(self, rules: List[MigrationRule], collection, clear_existing: bool = False):
         """Store rules in vector database
@@ -2714,7 +2717,7 @@ class DependencyAgent:
                         example_deps = list(self.dependency_mappings.items())[:5]
                         for artifact_id, mapping in example_deps:
                             version_prop_str = f"${{{mapping['versionProperty']}}}" if mapping['versionProperty'] else "inherited"
-                            print(f"  • {mapping['groupId']}:{artifact_id} -> {version_prop_str}")
+                            print(f"  â€¢ {mapping['groupId']}:{artifact_id} -> {version_prop_str}")
                             
         except Exception as e:
             print(f"[WARN] Could not load platform POM: {e}")
@@ -4143,10 +4146,10 @@ REQUIREMENTS:
 5. Include ALL required imports
 
 SPECIFIC CONVERSIONS:
-- @Configuration → @Factory
-- @Value("${{spring.*}}") → @Property(name="*", defaultValue="...")
-- @Bean methods → @Bean @Singleton methods
-- Spring-specific types → Micronaut equivalents (see conversion rules below)
+- @Configuration â†’ @Factory
+- @Value("${{spring.*}}") â†’ @Property(name="*", defaultValue="...")
+- @Bean methods â†’ @Bean @Singleton methods
+- Spring-specific types â†’ Micronaut equivalents (see conversion rules below)
 
 DO NOT remove methods - convert them! The class body MUST contain all converted methods!
 """
@@ -4165,44 +4168,44 @@ CRITICAL: Analyze the ORIGINAL code line by line to understand the logic, then c
 
 MANDATORY REQUIREMENTS - FIX ALL OF THESE:
 1. ANNOTATIONS - Replace ALL Spring annotations:
-   - @Configuration → @Factory (MUST add import: io.micronaut.context.annotation.Factory)
-   - @Value("${{spring.redis.host:localhost}}") → @Property(name="redis.host", defaultValue="localhost")
-   - @ConfigurationProperties(prefix="spring.datasource.hikari") → @EachProperty("datasources.default.hikari")
-   - @RestController → @Controller (MUST add import: io.micronaut.http.annotation.Controller)
-   - @GetMapping → @Get (MUST add import: io.micronaut.http.annotation.Get)
-   - @PostMapping → @Post (MUST add import: io.micronaut.http.annotation.Post)
-   - @PutMapping → @Put (MUST add import: io.micronaut.http.annotation.Put)
-   - @DeleteMapping → @Delete (MUST add import: io.micronaut.http.annotation.Delete)
-   - @RequestBody → @Body (MUST add import: io.micronaut.http.annotation.Body)
-   - @RequestParam → @QueryValue (MUST add import: io.micronaut.http.annotation.QueryValue)
-   - @Service/@Component → @Singleton (MUST add import: jakarta.inject.Singleton)
-   - @EnableCaching → @Requires(beans = CacheManager.class) (MUST add imports: io.micronaut.context.annotation.Requires, io.micronaut.cache.CacheManager)
-   - @EnableCoherence → REMOVE (doesn't exist in Micronaut)
+   - @Configuration â†’ @Factory (MUST add import: io.micronaut.context.annotation.Factory)
+   - @Value("${{spring.redis.host:localhost}}") â†’ @Property(name="redis.host", defaultValue="localhost")
+   - @ConfigurationProperties(prefix="spring.datasource.hikari") â†’ @EachProperty("datasources.default.hikari")
+   - @RestController â†’ @Controller (MUST add import: io.micronaut.http.annotation.Controller)
+   - @GetMapping â†’ @Get (MUST add import: io.micronaut.http.annotation.Get)
+   - @PostMapping â†’ @Post (MUST add import: io.micronaut.http.annotation.Post)
+   - @PutMapping â†’ @Put (MUST add import: io.micronaut.http.annotation.Put)
+   - @DeleteMapping â†’ @Delete (MUST add import: io.micronaut.http.annotation.Delete)
+   - @RequestBody â†’ @Body (MUST add import: io.micronaut.http.annotation.Body)
+   - @RequestParam â†’ @QueryValue (MUST add import: io.micronaut.http.annotation.QueryValue)
+   - @Service/@Component â†’ @Singleton (MUST add import: jakarta.inject.Singleton)
+   - @EnableCaching â†’ @Requires(beans = CacheManager.class) (MUST add imports: io.micronaut.context.annotation.Requires, io.micronaut.cache.CacheManager)
+   - @EnableCoherence â†’ REMOVE (doesn't exist in Micronaut)
 
 2. IMPORTS - Add ALL required imports for annotations used:
-   - If @Factory is used → MUST have: import io.micronaut.context.annotation.Factory;
-   - If @Bean is used → MUST have: import io.micronaut.context.annotation.Bean;
-   - If @Requires is used → MUST have: import io.micronaut.context.annotation.Requires;
-   - If @EachProperty is used → MUST have: import io.micronaut.context.annotation.EachProperty;
-   - If @Property is used → MUST have: import io.micronaut.context.annotation.Property;
-   - If @Singleton is used → MUST have: import jakarta.inject.Singleton;
-   - If @Controller is used → MUST have: import io.micronaut.http.annotation.Controller;
-   - If @Get/@Post/@Put/@Delete is used → MUST have corresponding imports
-   - If @Body is used → MUST have: import io.micronaut.http.annotation.Body;
-   - If @PathVariable is used → MUST have: import io.micronaut.http.annotation.PathVariable;
-   - If CacheManager is used → MUST have: import io.micronaut.cache.CacheManager;
+   - If @Factory is used â†’ MUST have: import io.micronaut.context.annotation.Factory;
+   - If @Bean is used â†’ MUST have: import io.micronaut.context.annotation.Bean;
+   - If @Requires is used â†’ MUST have: import io.micronaut.context.annotation.Requires;
+   - If @EachProperty is used â†’ MUST have: import io.micronaut.context.annotation.EachProperty;
+   - If @Property is used â†’ MUST have: import io.micronaut.context.annotation.Property;
+   - If @Singleton is used â†’ MUST have: import jakarta.inject.Singleton;
+   - If @Controller is used â†’ MUST have: import io.micronaut.http.annotation.Controller;
+   - If @Get/@Post/@Put/@Delete is used â†’ MUST have corresponding imports
+   - If @Body is used â†’ MUST have: import io.micronaut.http.annotation.Body;
+   - If @PathVariable is used â†’ MUST have: import io.micronaut.http.annotation.PathVariable;
+   - If CacheManager is used â†’ MUST have: import io.micronaut.cache.CacheManager;
    - REMOVE ALL Spring imports (org.springframework.*)
 
 3. PROPERTY NAMES - Convert Spring property names:
-   - spring.redis.host → redis.host
-   - spring.redis.port → redis.port
-   - spring.datasource.hikari.* → datasources.default.hikari.*
+   - spring.redis.host â†’ redis.host
+   - spring.redis.port â†’ redis.port
+   - spring.datasource.hikari.* â†’ datasources.default.hikari.*
    - Remove "spring." prefix from all properties
 
 4. TYPES - Replace Spring types:
-   - ResponseEntity → HttpResponse
-   - ResponseEntity.ok(data) → HttpResponse.ok(data)
-   - ResponseEntity.created(uri).body(data) → HttpResponse.created(uri).body(data)
+   - ResponseEntity â†’ HttpResponse
+   - ResponseEntity.ok(data) â†’ HttpResponse.ok(data)
+   - ResponseEntity.created(uri).body(data) â†’ HttpResponse.created(uri).body(data)
 
 5. Fix patterns not found in RAG: {missing_patterns}
 
@@ -4218,11 +4221,11 @@ MANDATORY REQUIREMENTS - FIX ALL OF THESE:
 CRITICAL: @SpringBootApplication and SpringApplication DO NOT EXIST in Micronaut!
 
 For SpringBootApplication/DemoApplication conversion:
-- @SpringBootApplication → REMOVE (Micronaut doesn't need application annotation)
-- @EnableCaching → REMOVE (Micronaut doesn't need this)
-- @EnableGatewayMvc → REMOVE (Micronaut doesn't need this)
-- @EnableCoherence → REMOVE (Micronaut doesn't need this)
-- SpringApplication.run() → Micronaut.run()
+- @SpringBootApplication â†’ REMOVE (Micronaut doesn't need application annotation)
+- @EnableCaching â†’ REMOVE (Micronaut doesn't need this)
+- @EnableGatewayMvc â†’ REMOVE (Micronaut doesn't need this)
+- @EnableCoherence â†’ REMOVE (Micronaut doesn't need this)
+- SpringApplication.run() â†’ Micronaut.run()
 - Remove all Spring Boot application imports
 - Add import: io.micronaut.runtime.Micronaut
 
@@ -4302,11 +4305,11 @@ IMPORTANT:
 CRITICAL: Spring Coherence APIs DO NOT EXIST in Micronaut!
 
 For CoherenceConfig class:
-- @Configuration + @EnableCaching + @EnableCoherence → @Factory + @Requires(beans = CacheManager.class)
+- @Configuration + @EnableCaching + @EnableCoherence â†’ @Factory + @Requires(beans = CacheManager.class)
 - Remove "implements CoherenceConfigurer" - it doesn't exist in Micronaut
 - Remove all com.oracle.coherence.spring.* imports
 - Remove @EnableCoherence annotation - doesn't exist in Micronaut
-- @EnableCaching → @Requires(beans = CacheManager.class) (MUST add this annotation)
+- @EnableCaching â†’ @Requires(beans = CacheManager.class) (MUST add this annotation)
 - For CoherenceCacheManager, use Micronaut's CacheManager instead:
   - Replace: new CoherenceCacheManager() 
   - With: CacheManager.getInstance()
@@ -4385,8 +4388,8 @@ IMPORTANT:
 CRITICAL: CacheConfig conversion
 
 For CacheConfig class:
-- @Configuration + @EnableCaching → @Factory + @Requires(beans = CacheManager.class)
-- @EnableCaching → @Requires(beans = CacheManager.class) (ensures CacheManager bean is available)
+- @Configuration + @EnableCaching â†’ @Factory + @Requires(beans = CacheManager.class)
+- @EnableCaching â†’ @Requires(beans = CacheManager.class) (ensures CacheManager bean is available)
 - Keep the class simple - @Factory and @Requires annotations
 - Preserve comments about Ehcache configuration
 - MUST add imports:
@@ -4422,8 +4425,8 @@ Micronaut:
 CRITICAL: RedisTemplate and RedisConnectionFactory from Spring Data Redis DO NOT EXIST in Micronaut!
 
 For RedisConfig class:
-- @Configuration + @EnableCaching → @Factory + @Requires(beans = CacheManager.class)
-- @EnableCaching → @Requires(beans = CacheManager.class) (MUST add this annotation)
+- @Configuration + @EnableCaching â†’ @Factory + @Requires(beans = CacheManager.class)
+- @EnableCaching â†’ @Requires(beans = CacheManager.class) (MUST add this annotation)
 - PRESERVE ALL methods from the original class - DO NOT leave class body empty!
 - Convert @Value to @Property (already done in preprocessing)
 - PRESERVE all field declarations with @Property annotations
@@ -4431,9 +4434,9 @@ For RedisConfig class:
 - CRITICAL: The class must have ALL three methods converted, not just imports!
 
 Required method conversions:
-  1. redisConnectionFactory() → MUST convert to redisClient() bean
-  2. redisTemplate() → MUST convert to redisCommands() bean (for synchronous operations)
-  3. cacheManager() → MUST convert to Micronaut CacheManager bean
+  1. redisConnectionFactory() â†’ MUST convert to redisClient() bean
+  2. redisTemplate() â†’ MUST convert to redisCommands() bean (for synchronous operations)
+  3. cacheManager() â†’ MUST convert to Micronaut CacheManager bean
 
 Micronaut Redis approach:
 1. For Redis caching: Use io.micronaut.cache.CacheManager (auto-configured if redis dependencies present)
@@ -4601,20 +4604,20 @@ CRITICAL REQUIREMENTS:
                         prompt_parts.append("""
 CRITICAL FIXES NEEDED:
 
-1. @Configuration → @Factory:
+1. @Configuration â†’ @Factory:
    - Replace @Configuration with @Factory
    - MUST add import: import io.micronaut.context.annotation.Factory;
-   - Example: @Configuration → @Factory
+   - Example: @Configuration â†’ @Factory
 
-2. @Value → @Property:
-   - @Value("${spring.redis.host:localhost}") → @Property(name="redis.host", defaultValue="localhost")
+2. @Value â†’ @Property:
+   - @Value("${spring.redis.host:localhost}") â†’ @Property(name="redis.host", defaultValue="localhost")
    - Remove "spring." prefix from property names
    - MUST add import: import io.micronaut.context.annotation.Property;
-   - Example: @Value("${spring.redis.port:6379}") → @Property(name="redis.port", defaultValue="6379")
+   - Example: @Value("${spring.redis.port:6379}") â†’ @Property(name="redis.port", defaultValue="6379")
 
-3. @ConfigurationProperties → @EachProperty:
-   - @ConfigurationProperties(prefix="spring.datasource.hikari") → @EachProperty("datasources.default.hikari")
-   - Convert prefix: spring.datasource.hikari → datasources.default.hikari
+3. @ConfigurationProperties â†’ @EachProperty:
+   - @ConfigurationProperties(prefix="spring.datasource.hikari") â†’ @EachProperty("datasources.default.hikari")
+   - Convert prefix: spring.datasource.hikari â†’ datasources.default.hikari
    - MUST add import: import io.micronaut.context.annotation.EachProperty;
    - CRITICAL: @EachProperty must be on a CLASS, NOT on a method!
    - If @ConfigurationProperties was on a method parameter, convert to a separate @EachProperty class
@@ -4639,7 +4642,7 @@ CRITICAL FIXES NEEDED:
    - CacheManager needs: import io.micronaut.cache.CacheManager;
 
 5. Remove Spring annotations:
-   - @EnableCaching → @Requires(beans = CacheManager.class) (MUST add imports: io.micronaut.context.annotation.Requires, io.micronaut.cache.CacheManager)
+   - @EnableCaching â†’ @Requires(beans = CacheManager.class) (MUST add imports: io.micronaut.context.annotation.Requires, io.micronaut.cache.CacheManager)
    - Remove @EnableCoherence (doesn't exist in Micronaut)
    - Remove @EnableJpaRepositories (Micronaut handles automatically)
 """)
@@ -4679,9 +4682,9 @@ CRITICAL CLASS BOUNDARY RULES:
 REDIS CONFIG SPECIFIC:
 - RedisTemplate and RedisConnectionFactory DO NOT EXIST in Micronaut
 - CONVERT (don't remove) methods that use RedisTemplate or RedisConnectionFactory:
-  - redisConnectionFactory() → MUST convert to redisClient() bean using io.lettuce.core.RedisClient
-  - redisTemplate() → MUST convert to redisCommands() bean using io.lettuce.core.api.sync.RedisCommands
-  - cacheManager() → MUST convert to Micronaut CacheManager bean
+  - redisConnectionFactory() â†’ MUST convert to redisClient() bean using io.lettuce.core.RedisClient
+  - redisTemplate() â†’ MUST convert to redisCommands() bean using io.lettuce.core.api.sync.RedisCommands
+  - cacheManager() â†’ MUST convert to Micronaut CacheManager bean
 - PRESERVE ALL methods from original - convert them to Micronaut equivalents
 - CRITICAL: The class body MUST NOT be empty - it must have all three bean methods converted!
 - See complete Redis conversion example above for how to convert each method
@@ -4725,10 +4728,10 @@ Then: class code
 END with: closing brace
 
 You understand that some Spring APIs don't exist in Micronaut:
-- @SpringBootApplication → Remove (no annotation needed, just use Micronaut.run())
-- GatewayMvcConfigurer, ProxyExchange → Use HttpClient
-- Spring Coherence APIs → Use Micronaut CacheManager
-- RedisTemplate, RedisConnectionFactory → Use Micronaut Redis client
+- @SpringBootApplication â†’ Remove (no annotation needed, just use Micronaut.run())
+- GatewayMvcConfigurer, ProxyExchange â†’ Use HttpClient
+- Spring Coherence APIs â†’ Use Micronaut CacheManager
+- RedisTemplate, RedisConnectionFactory â†’ Use Micronaut Redis client
 
 For ALL complex conversions:
 1. Read the ORIGINAL Spring code carefully
@@ -4742,10 +4745,10 @@ CRITICAL RULES:
 1. Read the ORIGINAL Spring code line by line to understand the logic
 2. Convert ALL Spring annotations to Micronaut equivalents
 3. Add ALL required imports for every annotation used
-4. Convert property names: spring.redis.* → redis.*, spring.datasource.* → datasources.default.*
+4. Convert property names: spring.redis.* â†’ redis.*, spring.datasource.* â†’ datasources.default.*
 5. Convert Spring-only annotations:
-   - @EnableCaching → @Requires(beans = CacheManager.class) (MUST add imports: io.micronaut.context.annotation.Requires, io.micronaut.cache.CacheManager)
-   - @EnableCoherence → REMOVE (doesn't exist in Micronaut)
+   - @EnableCaching â†’ @Requires(beans = CacheManager.class) (MUST add imports: io.micronaut.context.annotation.Requires, io.micronaut.cache.CacheManager)
+   - @EnableCoherence â†’ REMOVE (doesn't exist in Micronaut)
 6. Use HttpClient for proxying instead of ProxyExchange
 7. Remove interfaces/classes that don't exist in Micronaut
 8. Preserve all business logic and functionality
@@ -4818,7 +4821,7 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
                                     import_line = 'import io.micronaut.http.annotation.*;\n'
                                     content = content[:package_match.end()] + '\n' + import_line + content[package_match.end():]
                         
-                        # ⭐ SELF-IMPROVING RAG: Learn from LLM conversion
+                        # â­ SELF-IMPROVING RAG: Learn from LLM conversion
                         # Store patterns that LLM handled so RAG can use them next time
                         try:
                             learned_count = self.kb.learn_from_llm_conversion(
@@ -4928,7 +4931,7 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
                                 content = '\n'.join(lines)
             
             # CRITICAL: Replace @EnableCaching with @Requires(beans = CacheManager.class)
-            # In Micronaut, @EnableCaching → @Requires(beans = CacheManager.class) to ensure CacheManager is available
+            # In Micronaut, @EnableCaching â†’ @Requires(beans = CacheManager.class) to ensure CacheManager is available
             if '@EnableCaching' in content:
                 # Replace @EnableCaching with @Requires(beans = CacheManager.class)
                 content = re.sub(r'@EnableCaching\s*\n?', '@Requires(beans = CacheManager.class)\n', content)
@@ -5448,7 +5451,7 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
                 micronaut_imports.append('import io.micronaut.http.annotation.*;')
         
         if 'ResponseEntity' in content:
-            # ⭐ USE RAG FOR TYPE TRANSFORMATION
+            # â­ USE RAG FOR TYPE TRANSFORMATION
             type_rules = self.kb.search_type('ResponseEntity', top_k=1)
             if type_rules:
                 rule = type_rules[0]
@@ -5591,7 +5594,7 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
             if '@FactoryProperties' in content and 'io.micronaut.context.annotation.FactoryProperties' not in content:
                 micronaut_imports.append('import io.micronaut.context.annotation.FactoryProperties;')
         
-        # ⭐ USE RAG FOR IMPORT MAPPINGS
+        # â­ USE RAG FOR IMPORT MAPPINGS
         # Find Spring imports in content and map to Micronaut using RAG
         spring_imports_found = re.findall(r'import\s+(org\.springframework\.[\w.]+);', content)
         for spring_import in spring_imports_found:
@@ -5602,7 +5605,7 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
                 if f'import {rule.micronaut_pattern};' not in content:
                     micronaut_imports.append(f'import {rule.micronaut_pattern};')
         
-        # ⭐ USE RAG FOR TYPE MAPPINGS
+        # â­ USE RAG FOR TYPE MAPPINGS
         # Check for types that need imports
         type_patterns = re.findall(r'\b(CacheManager|DataSource|HikariConfig|HikariDataSource|RedisTemplate|RedisConnectionFactory|ResponseEntity)\b', content)
         for type_pattern in set(type_patterns):
@@ -7126,6 +7129,114 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
         
         return content
 
+    def _apply_hardcoded_redis_config_conversion(self, spring_source: str, class_name: str) -> Optional[str]:
+        """Apply hardcoded conversion for RedisConfig when LLM fails
+        
+        This is a fallback that ensures RedisConfig gets converted correctly
+        even if the LLM returns explanations instead of code.
+        """
+        if 'RedisConfig' not in class_name or 'RedisTemplate' not in spring_source:
+            return None
+        
+        try:
+            # Extract package
+            package_match = re.search(r'package\s+([\w.]+);', spring_source)
+            package = package_match.group(1) if package_match else 'com.example.person.config'
+            
+            # Extract property fields from Spring source
+            properties = []
+            for prop_match in re.finditer(r'@Value\("\\$\\{spring\.redis\.(\w+):([^}]+)\}"\)\s+private\s+(\w+)\s+(\w+);', spring_source):
+                prop_name = prop_match.group(1)
+                default_value = prop_match.group(2)
+                prop_type = prop_match.group(3)
+                var_name = prop_match.group(4)
+                
+                # Convert property name
+                micronaut_prop_name = prop_name
+                properties.append(f'    @Property(name = "redis.{micronaut_prop_name}", defaultValue = "{default_value}")\n    private {prop_type} {var_name};')
+            
+            # Build Micronaut code
+            micronaut_code = f"""package {package};
+
+import io.micronaut.cache.CacheManager;
+import io.micronaut.context.annotation.Bean;
+import io.micronaut.context.annotation.Factory;
+import io.micronaut.context.annotation.Property;
+import io.micronaut.context.annotation.Requires;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
+import jakarta.inject.Singleton;
+import java.time.Duration;
+
+/**
+ * Redis Cache Configuration for Person Service
+ * 
+ * This configuration sets up Redis caching with OCI Redis integration
+ * for distributed caching and session management.
+ */
+@Factory
+@Requires(beans = CacheManager.class)
+public class RedisConfig {{
+
+{chr(10).join(properties)}
+
+    /**
+     * Configure Redis client for direct Redis operations
+     * 
+     * @return RedisClient
+     */
+    @Bean
+    @Singleton
+    public RedisClient redisClient() {{
+        RedisURI.Builder uriBuilder = RedisURI.builder()
+                .withHost(redisHost)
+                .withPort(redisPort)
+                .withDatabase(redisDatabase)
+                .withTimeout(Duration.ofMillis(redisTimeout));
+
+        if (redisPassword != null && !redisPassword.isEmpty()) {{
+            uriBuilder.withPassword(redisPassword.toCharArray());
+        }}
+
+        RedisURI uri = uriBuilder.build();
+        return RedisClient.create(uri);
+    }}
+
+    /**
+     * Configure Redis connection for synchronous operations
+     * 
+     * @param redisClient Redis client
+     * @return RedisCommands for synchronous operations
+     */
+    @Bean
+    @Singleton
+    public RedisCommands<String, String> redisCommands(RedisClient redisClient) {{
+        StatefulRedisConnection<String, String> connection = redisClient.connect();
+        return connection.sync();
+    }}
+
+    /**
+     * Configure Redis cache manager
+     * 
+     * @return CacheManager
+     */
+    @Bean
+    @Singleton
+    public CacheManager cacheManager() {{
+        return io.micronaut.cache.DefaultCacheManager.INSTANCE;
+    }}
+}}"""
+            
+            return micronaut_code
+            
+        except Exception as e:
+            print(f"  [ERROR] Hardcoded conversion failed: {e}")
+            return None
+
+
+
 
 class ConfigMigrationAgent:
     """Migrates configuration files"""
@@ -7539,7 +7650,7 @@ class MigrationOrchestrator:
         report.dependency_changes = dep_changes
         print(f"  [OK] Migrated {len(dep_changes)} dependencies")
         for old, new in list(dep_changes.items())[:3]:
-            print(f"    • {old} -> {new}")
+            print(f"    â€¢ {old} -> {new}")
         
         # Step 3: Migrate configuration files
         print("\n[3/6] Migrating configuration files...")
@@ -7556,7 +7667,7 @@ class MigrationOrchestrator:
         
         print(f"  [OK] Migrated {len(report.config_changes)} configuration keys")
         for old, new in list(report.config_changes.items())[:3]:
-            print(f"    • {old} -> {new}")
+            print(f"    â€¢ {old} -> {new}")
         
         # Step 4: Migrate source code
         print("\n[4/6] Migrating source code...")
@@ -7662,9 +7773,10 @@ class MigrationOrchestrator:
             if build_tool == "maven":
                 # Check if Maven is available
                 try:
-                    subprocess.run(['mvn', '--version'], capture_output=True, check=True, timeout=5)
-                except (FileNotFoundError, subprocess.TimeoutExpired):
-                    result['error'] = "Maven not found in PATH - skipping build validation"
+                    # Windows compatibility: shell=True is needed for mvn (batch file)
+                    subprocess.run(['mvn', '--version'], capture_output=True, check=True, timeout=5, shell=True)
+                except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                    result['error'] = "Maven not found in PATH or failed to execute - skipping build validation"
                     os.chdir(original_dir)
                     return result
                 
@@ -7715,25 +7827,25 @@ class MigrationOrchestrator:
         print("MIGRATION SUMMARY")
         print("=" * 60)
         print(f"\n[STATS] Statistics:")
-        print(f"  • Total files: {report.total_files}")
-        print(f"  • Migrated: {report.migrated_files}")
-        print(f"  • Failed: {len(report.failed_files)}")
-        print(f"  • Success rate: {(report.migrated_files/report.total_files*100):.1f}%")
+        print(f"  â€¢ Total files: {report.total_files}")
+        print(f"  â€¢ Migrated: {report.migrated_files}")
+        print(f"  â€¢ Failed: {len(report.failed_files)}")
+        print(f"  â€¢ Success rate: {(report.migrated_files/report.total_files*100):.1f}%")
         
         print(f"\n[DEPS] Dependency Changes: {len(report.dependency_changes)}")
         for old, new in list(report.dependency_changes.items())[:5]:
-            print(f"  • {old}")
+            print(f"  â€¢ {old}")
             print(f"    -> {new}")
         
         print(f"\n[CONFIG] Configuration Changes: {len(report.config_changes)}")
         for old, new in list(report.config_changes.items())[:5]:
-            print(f"  • {old}")
+            print(f"  â€¢ {old}")
             print(f"    -> {new}")
         
         if report.warnings:
             print(f"\n[WARN] Warnings ({len(report.warnings)}):")
             for warning in report.warnings[:5]:
-                print(f"  • {warning}")
+                print(f"  â€¢ {warning}")
             if len(report.warnings) > 5:
                 print(f"  ... and {len(report.warnings) - 5} more")
         
@@ -8097,111 +8209,7 @@ spring:
     print("=" * 60)
 
 
-    def _apply_hardcoded_redis_config_conversion(self, spring_source: str, class_name: str) -> Optional[str]:
-        """Apply hardcoded conversion for RedisConfig when LLM fails
-        
-        This is a fallback that ensures RedisConfig gets converted correctly
-        even if the LLM returns explanations instead of code.
-        """
-        if 'RedisConfig' not in class_name or 'RedisTemplate' not in spring_source:
-            return None
-        
-        try:
-            # Extract package
-            package_match = re.search(r'package\s+([\w.]+);', spring_source)
-            package = package_match.group(1) if package_match else 'com.example.person.config'
-            
-            # Extract property fields from Spring source
-            properties = []
-            for prop_match in re.finditer(r'@Value\("\\$\\{spring\.redis\.(\w+):([^}]+)\}"\)\s+private\s+(\w+)\s+(\w+);', spring_source):
-                prop_name = prop_match.group(1)
-                default_value = prop_match.group(2)
-                prop_type = prop_match.group(3)
-                var_name = prop_match.group(4)
-                
-                # Convert property name
-                micronaut_prop_name = prop_name
-                properties.append(f'    @Property(name = "redis.{micronaut_prop_name}", defaultValue = "{default_value}")\n    private {prop_type} {var_name};')
-            
-            # Build Micronaut code
-            micronaut_code = f"""package {package};
 
-import io.micronaut.cache.CacheManager;
-import io.micronaut.context.annotation.Bean;
-import io.micronaut.context.annotation.Factory;
-import io.micronaut.context.annotation.Property;
-import io.micronaut.context.annotation.Requires;
-import io.lettuce.core.RedisClient;
-import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
-import jakarta.inject.Singleton;
-import java.time.Duration;
-
-/**
- * Redis Cache Configuration for Person Service
- * 
- * This configuration sets up Redis caching with OCI Redis integration
- * for distributed caching and session management.
- */
-@Factory
-@Requires(beans = CacheManager.class)
-public class RedisConfig {{
-
-{chr(10).join(properties)}
-
-    /**
-     * Configure Redis client for direct Redis operations
-     * 
-     * @return RedisClient
-     */
-    @Bean
-    @Singleton
-    public RedisClient redisClient() {{
-        RedisURI.Builder uriBuilder = RedisURI.builder()
-                .withHost(redisHost)
-                .withPort(redisPort)
-                .withDatabase(redisDatabase)
-                .withTimeout(Duration.ofMillis(redisTimeout));
-
-        if (redisPassword != null && !redisPassword.isEmpty()) {{
-            uriBuilder.withPassword(redisPassword.toCharArray());
-        }}
-
-        RedisURI uri = uriBuilder.build();
-        return RedisClient.create(uri);
-    }}
-
-    /**
-     * Configure Redis connection for synchronous operations
-     * 
-     * @param redisClient Redis client
-     * @return RedisCommands for synchronous operations
-     */
-    @Bean
-    @Singleton
-    public RedisCommands<String, String> redisCommands(RedisClient redisClient) {{
-        StatefulRedisConnection<String, String> connection = redisClient.connect();
-        return connection.sync();
-    }}
-
-    /**
-     * Configure Redis cache manager
-     * 
-     * @return CacheManager
-     */
-    @Bean
-    @Singleton
-    public CacheManager cacheManager() {{
-        return io.micronaut.cache.DefaultCacheManager.INSTANCE;
-    }}
-}}"""
-            
-            return micronaut_code
-            
-        except Exception as e:
-            print(f"  [ERROR] Hardcoded conversion failed: {e}")
-            return None
 
 # ==================== Notebook/Colab Helper ====================
 

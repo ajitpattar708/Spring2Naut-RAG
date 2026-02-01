@@ -55,6 +55,12 @@ examples/spring/*
 examples/micronaut/*
 !examples/micronaut/.gitkeep
 !examples/README.md
+examples/test_output
+demo_source/
+maven_search.txt
+dontcommit.txt
+llm_response_debug.txt
+redis_config_llm_prompt.txt
 
 # Logs
 *.log
@@ -72,6 +78,7 @@ target/
 *.tmp
 *.temp
 temp/
+75/
 tmp/
 
 # OS
@@ -126,4 +133,3 @@ key_client.py
 key_client_supabase.py
 build_protected.py
 encrypt_dataset.py
-

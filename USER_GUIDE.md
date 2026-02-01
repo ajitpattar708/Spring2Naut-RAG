@@ -1,16 +1,15 @@
-# User Guide - Spring Boot to Micronaut Migration Agent
+# User Guide - Spring2Naut-RAG (GA v1.0.0)
 
-A simple guide to get started with the migration agent.
+A comprehensive guide to transforming your Spring Boot projects to Micronaut using the professional-grade Agentic Migration Tool.
 
 ## Prerequisites
 
 - Python 3.8 or higher
-- Maven (for building migrated projects)
+- Maven or Gradle (installed and on PATH)
 - LLM Provider (choose one):
-  - **Ollama** (recommended, free, local)
-  - OpenAI API key
-  - Anthropic Claude API key
-  - Groq API key
+  - **Ollama** (recommended for privacy, free, local)
+  - OpenAI API (Higher accuracy for complex logic)
+  - Anthropic Claude / Groq
 
 ## Quick Start
 
@@ -24,25 +23,14 @@ pip install -r requirements_file.txt
 
 #### Option A: Ollama (Free, Local)
 
+Install Ollama from [ollama.com](https://ollama.com).
+
 ```bash
-# Install Ollama
-# Windows: Download from https://ollama.com/download
-# Linux/Mac: curl -fsSL https://ollama.com/install.sh | sh
-
-# Start Ollama server
-ollama serve
-
-# In another terminal, pull model
+# Pull the recommended model
 ollama pull codellama:7b
 ```
 
-Set environment variables:
-```bash
-export LLM_PROVIDER=ollama
-export LLM_MODEL=codellama:7b
-```
-
-#### Option B: OpenAI
+#### Option B: OpenAI (Recommended for Accuracy)
 
 ```bash
 export OPENAI_API_KEY=your-api-key
@@ -50,138 +38,55 @@ export LLM_PROVIDER=openai
 export LLM_MODEL=gpt-4-turbo
 ```
 
-#### Option C: Anthropic Claude
+### Step 3: Run Migration
+
+Use the modular migration engine to transform your project. The tool will automatically detect your build system (Maven/Gradle), migrate dependencies, transform code, and perform a self-refinement loop.
 
 ```bash
-export ANTHROPIC_API_KEY=your-api-key
-export LLM_PROVIDER=claude
-export LLM_MODEL=claude-3-opus-20240229
-```
-
-#### Option D: Groq
-
-```bash
-export GROQ_API_KEY=your-api-key
-export LLM_PROVIDER=groq
-export LLM_MODEL=llama3-70b-8192
-```
-
-### Step 3: Initialize Knowledge Base
-
-```bash
-python migration_agent_main.py init
-```
-
-This loads migration patterns into the vector database (takes 1-2 minutes).
-
-### Step 4: Migrate Your Project
-
-```bash
-python migration_agent_main.py migrate \
-    <path-to-spring-project> \
-    <path-to-output-directory> \
-    --spring-version <version> \
-    --micronaut-version <version>
-```
-
-**Example:**
-```bash
-python migration_agent_main.py migrate \
-    /path/to/my-spring-app \
-    /path/to/my-micronaut-app \
+python main.py <path-to-spring-project> <path-to-output-directory> \
     --spring-version 3.4.5 \
     --micronaut-version 4.10.8
 ```
 
-## Available Commands
+## Advanced Features
 
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize knowledge base (first time setup) |
-| `migrate <source> <output> [options]` | Migrate a Spring Boot project to Micronaut |
-| `test` | Test with sample code |
+### Automated Self-Refinement (Try-Compile-Fix)
 
-### Command Options
+The tool includes a sophisticated "validation loop". After the initial transformation, the **ValidationAgent** attempts to build the migrated project. If compilation errors are detected:
+1. The error log is parsed to identify the exact file and cause.
+2. The code and errors are sent back to the LLM for a targeted "self-fix".
+3. The process repeats (up to 3 times) until the build succeeds.
 
-- `--spring-version <version>` - Spring Boot version (e.g., 3.4.5)
-- `--micronaut-version <version>` - Micronaut version (e.g., 4.10.8)
+### IP Protection and Data Security
 
-**Note:** Advanced commands like `export` and `merge` are available for dataset management but not needed for basic usage.
+For enterprise users, the system supports:
+- **Encrypted Datasets**: Proprietary migration patterns are stored in encrypted `.dat` files.
+- **Remote Knowledge Mode**: Keeping the migration logic in your secure cloud while the agent runs locally.
 
 ## What Gets Migrated
 
 ### Automatically Migrated
-
-- **Annotations**: `@RestController` → `@Controller`, `@GetMapping` → `@Get`, etc.
-- **Dependencies**: Spring Boot → Micronaut equivalents in `pom.xml`
-- **Configuration**: `application.yml`/`.properties` conversion
-- **Code Patterns**: Controllers, Services, Repositories, Configs
-- **Imports**: Spring packages → Micronaut packages
-
-### Manual Steps May Be Required
-
-- Complex security configurations
-- Custom Spring AOP
-- Spring Cloud components
-- WebSocket/STOMP configurations
-- Multi-module projects
-
-## After Migration
-
-1. **Review the migration report** - Check `migration-report.json` in output directory
-2. **Build the project**:
-   ```bash
-   cd <output-directory>
-   mvn clean compile
-   ```
-3. **Run tests**:
-   ```bash
-   mvn test
-   ```
-4. **Review changes** - Check the diff of migrated files
-5. **Test manually** - Test all API endpoints
+- **Annotations**: Full mapping of Spring Web, DI, and Data annotations.
+- **Build Config**: Full conversion of `pom.xml` and `build.gradle` scripts.
+- **Source Code**: Field injection to constructor injection, package replacements.
+- **Configurations**: `application.properties`/`yml` to Micronaut metadata.
 
 ## Troubleshooting
 
-### Knowledge Base Not Found
+### Build Failures After Migration
+If the self-refinement loop reaches its retry limit, check the terminal output for the remaining errors. Common causes include:
+- Missing custom dependencies in the mapping dataset.
+- Extremely complex Spring AOP patterns.
+
+### Decryption and IP Protection
+If you are using protected enterprise datasets (`.dat` files), you **must** set your decryption password:
+
 ```bash
-python migration_agent_main.py init
+export DATASET_ENCRYPTION_PASSWORD=your-secure-password
 ```
 
-### Ollama Not Available
-The agent works without Ollama but with reduced capabilities. Start Ollama:
-```bash
-ollama serve
-```
-
-### Import Errors After Migration
-Add missing Micronaut dependencies to `pom.xml`:
-```xml
-<dependency>
-    <groupId>io.micronaut</groupId>
-    <artifactId>micronaut-inject</artifactId>
-</dependency>
-```
-
-### Out of Memory
-- Use a smaller embedding model
-- Process files in batches
-- Close other applications
-
-## More Information
-
-- **Full Documentation**: See [README.md](README.md)
-- **Configuration**: See Configuration section in README.md
-
-## Tips
-
-1. **Start Small**: Test with a small module first
-2. **Version Control**: Commit your code before migration
-3. **Backup**: Keep original project safe
-4. **Review**: Always review migrated code before deploying
-5. **Test Thoroughly**: Run all tests after migration
+The tool will prioritize this environment variable over any internal fallbacks, ensuring your keys never reside in the codebase.
 
 ---
-
-**Need Help?** Open an issue on GitHub or check the documentation files.
+**Need Help?** Professional support is available for enterprise migrations.
 
