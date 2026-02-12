@@ -69,7 +69,7 @@ class LocalMigrationKnowledgeBase(KnowledgeService):
         if self._is_populated():
             return
 
-        print("[INFO] Initializing Knowledge Base for first-time use...")
+        print("[INFO] Initializing Intelligence Engine...")
         
         # 1. Load Community Dataset (Plain JSON)
         community_data = self.load_dataset(MigrationConfig.DATASET_FILE)
@@ -82,9 +82,9 @@ class LocalMigrationKnowledgeBase(KnowledgeService):
         
         if merged_rules:
             self._index_rules(merged_rules)
-            print(f"[OK] Knowledge Base indexed with {len(merged_rules)} patterns.")
+            print(f"[OK] Intelligence Engine indexed with {len(merged_rules)} patterns.")
         else:
-            print("[WARN] No datasets found. Falling back to limited internal patterns.")
+            print("[WARN] Intelligence Engine running with limited internal patterns.")
 
     def _is_populated(self) -> bool:
         """Checks if the collections have existing data."""

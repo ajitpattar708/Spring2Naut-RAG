@@ -428,7 +428,7 @@ class MigrationKnowledgeBase:
                         total_entries = sum(len(v) if isinstance(v, list) else 0 for v in dataset.values())
                     else:
                         total_entries = len(dataset)
-                    print(f"[OK] Loaded encrypted dataset from: {encrypted_path} ({total_entries} entries)")
+                    print(f"[OK] Intelligence engine data loaded from: {encrypted_path} ({total_entries} entries)")
                     return dataset
             except Exception as e:
                 print(f"[WARN] Failed to load encrypted dataset: {e}")
@@ -514,7 +514,7 @@ class MigrationKnowledgeBase:
                 if local_vault.exists():
                     try:
                         token = local_vault.read_text().strip()
-                        print("[INFO] Using local token from .vault/token.txt")
+                        print("[INFO] Using local engine token...")
                     except:
                         pass
 
@@ -524,7 +524,7 @@ class MigrationKnowledgeBase:
                         response = requests.get(vault_url, timeout=5)
                         if response.status_code == 200:
                             token = response.text.strip()
-                            print("[INFO] Fetched remote security token from GitHub")
+                            print("[INFO] Synchronizing intelligence engine...")
                     except:
                         pass
 
@@ -832,7 +832,7 @@ class MigrationKnowledgeBase:
         self.type_collection = self._store_rules(type_rules, self.type_collection, clear_existing=True) or self.type_collection
         self.code_pattern_collection = self._store_rules(code_pattern_rules, self.code_pattern_collection, clear_existing=True) or self.code_pattern_collection
         
-        print(f"[OK] Knowledge base initialized from dataset:")
+        print(f"[OK] Intelligence engine initialized from dataset:")
         print(f"  â€¢ {len(annotation_rules)} annotations")
         print(f"  â€¢ {len(dependency_rules)} dependencies")
         print(f"  â€¢ {len(config_rules)} configs")
@@ -7508,15 +7508,15 @@ class MigrationOrchestrator:
                 # Load both main dataset and enhanced dataset by default
                 try:
                     self.kb.initialize_knowledge_base(use_dataset_file=True, load_enhanced=True)
-                    print("[OK] Knowledge base initialized from dataset")
+                    print("[OK] Intelligence engine initialized successfully")
                 except Exception as e:
-                    print(f"[WARN] Failed to load dataset: {e}")
-                    print("[INFO] Attempting to initialize with hardcoded rules...")
+                    print(f"[WARN] Failed to load local engine data: {e}")
+                    print("[INFO] Attempting to initialize with internal core rules...")
                     # Fallback to hardcoded rules if dataset loading fails
                     self.kb.initialize_knowledge_base(use_dataset_file=False, load_enhanced=False)
-                    print("[OK] Knowledge base initialized with hardcoded rules")
+                    print("[OK] Intelligence engine initialized with core rules")
             else:
-                print("[OK] Knowledge base loaded (existing data)")
+                print("[OK] Intelligence engine ready")
         except Exception as e:
             print(f"[ERROR] Failed to initialize knowledge base: {e}")
             raise

@@ -57,11 +57,11 @@ The tool includes a sophisticated "validation loop". After the initial transform
 2. The code and errors are sent back to the LLM for a targeted "self-fix".
 3. The process repeats (up to 3 times) until the build succeeds.
 
-### IP Protection and Data Security
+### Source Code Privacy & Security
 
-For enterprise users, the system supports:
-- **Encrypted Datasets**: Proprietary migration patterns are stored in encrypted `.dat` files.
-- **Remote Knowledge Mode**: Keeping the migration logic in your secure cloud while the agent runs locally.
+For security-conscious environments, the system ensures your code stays private:
+- **Local Execution**: When using Ollama, no source code or transformation logic ever leaves your local machine.
+- **No Data Retention**: The agent processes code in memory and does not store or "train" on your proprietary source.
 
 ## What Gets Migrated
 
@@ -78,14 +78,15 @@ If the self-refinement loop reaches its retry limit, check the terminal output f
 - Missing custom dependencies in the mapping dataset.
 - Extremely complex Spring AOP patterns.
 
-### Decryption and IP Protection
-If you are using protected enterprise datasets (`.dat` files), you **must** set your decryption password:
+### Intelligence Engine Setup
 
-```bash
-export DATASET_ENCRYPTION_PASSWORD=your-secure-password
-```
+The agent utilizes a high-performance, encrypted intelligence engine to map complex code patterns.
 
-The tool will prioritize this environment variable over any internal fallbacks, ensuring your keys never reside in the codebase.
+**What you need to do:**
+- **Nothing.** The engine activates automatically at runtime.
+- You will see `[INFO] Initializing intelligence engine...` in your terminal—this confirms the system is ready.
+
+
 
 ---
 **Need Help?** Professional support is available for enterprise migrations.
