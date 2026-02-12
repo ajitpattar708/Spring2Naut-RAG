@@ -467,8 +467,28 @@ class MigrationKnowledgeBase:
             print(f"[DEBUG] Traceback: {traceback.format_exc()}")
             return None
     
+    @staticmethod
+    def _get_algorithmic_salt() -> str:
+        """
+        Generates a salt based on project structure. 
+        Practically invisible to automated scanners.
+        """
+        try:
+            root = Path(__file__).resolve().parent
+            readme = root / "README.md"
+            license_file = root / "LICENSE"
+            src_dir = root / "src"
+            
+            readme_len = len(readme.read_text(encoding="utf-8", errors="ignore")) if readme.exists() else 0
+            license_part = license_file.read_text(encoding="utf-8", errors="ignore")[:10] if license_file.exists() else ""
+            src_count = len([f for f in src_dir.rglob("*") if f.is_file()]) if src_dir.exists() else 0
+            
+            return f"{readme_len}{license_part}{src_count}"
+        except Exception:
+            return "spring2naut_v1_fallback"
+
     def _load_encrypted_dataset(self, encrypted_path: Path) -> Optional[Dict[str, List[Dict]]]:
-        """Load and decrypt an encrypted dataset file"""
+        """Load and decrypt an encrypted dataset file using Algorithmic Split-Key strategy"""
         try:
             # Import encryption libraries
             from cryptography.fernet import Fernet
@@ -476,51 +496,62 @@ class MigrationKnowledgeBase:
             from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
             from cryptography.hazmat.backends import default_backend
             import base64
+            import hashlib
         except ImportError:
             print("[ERROR] cryptography library required for encrypted datasets")
             print("[INFO] Install with: pip install cryptography")
             return None
         
         try:
-            # Try to get key from external server first (for open source protection)
-            key_params = None
-            try:
-                from key_client import KeyClient
-                key_client = KeyClient()
-                key_params = key_client.get_decryption_params()
-            except ImportError:
-                # key_client.py not available, fall back to obfuscated
-                pass
-            except Exception as e:
-                print(f"[WARN] Failed to fetch key from server: {e}")
-                print("[INFO] Falling back to obfuscated default...")
+            # 1. Attempt to derive password via Split-Key (Web Token + Algorithmic Salt)
+            password_str = os.getenv('DATASET_ENCRYPTION_PASSWORD')
+            vault_url = "https://raw.githubusercontent.com/ajitpattar708/Spring2Naut-RAG/main/.vault/token.txt"
             
-            # Use server key if available, otherwise use obfuscated fallback
-            if key_params:
-                salt = key_params['salt'] if isinstance(key_params['salt'], bytes) else key_params['salt'].encode('utf-8')
-                password = key_params['password'] if isinstance(key_params['password'], bytes) else key_params['password'].encode('utf-8')
-                iterations = key_params.get('iterations', 100000)
-            else:
-                # Fallback: Obfuscated key derivation (for offline/development)
-                # Obfuscated salt: base64 decode
-                salt_parts = ['c3ByaW5nMm5hdXRfcmFnX21pZ3JhdGlvbl8yMDI0', '2024', 'migration', 'rag']
-                salt = base64.b64decode(salt_parts[0]).decode('utf-8').encode('utf-8')
-                
-                # Obfuscated password: split and join
-                # Check environment variable first (for stronger security)
-                password = os.getenv('DATASET_ENCRYPTION_PASSWORD')
-                if not password:
+            if not password_str:
+                token = None
+                # Check Local .vault/token.txt first (for offline/maintainer mode)
+                local_vault = Path(".vault/token.txt")
+                if local_vault.exists():
+                    try:
+                        token = local_vault.read_text().strip()
+                        print("[INFO] Using local token from .vault/token.txt")
+                    except:
+                        pass
+
+                # If no local token, fetch Remote Token
+                if not token:
+                    try:
+                        response = requests.get(vault_url, timeout=5)
+                        if response.status_code == 200:
+                            token = response.text.strip()
+                            print("[INFO] Fetched remote security token from GitHub")
+                    except:
+                        pass
+
+                if token:
+                    local_salt = self._get_algorithmic_salt()
+                    # Derive GA-Grade Password
+                    combined = f"{token}{local_salt}"
+                    password_str = hashlib.sha256(combined.encode()).hexdigest()
+                else:
+                    # Fallback to legacy obfuscated password if token unreachable
+                    print("[WARN] Using legacy fallback password (security token unavailable)")
                     password_parts = ['Spring2Naut', '_RAG_', 'Migration_', 'Agent_v1.0']
-                    password = ''.join(password_parts)
-                password = password.encode('utf-8')
-                iterations = 100000
+                    password_str = ''.join(password_parts)
+
             
-            # Use PBKDF2 with high iterations (100k = similar to bcrypt security)
+            password = password_str.encode('utf-8')
+            
+            # 2. PBKDF2 Key Derivation
+            # The salt here is the database salt (matches encrypt_dataset.py)
+            db_salt_parts = ['c3ByaW5nMm5hdXRfcmFnX21pZ3JhdGlvbl8yMDI0']
+            db_salt = base64.b64decode(db_salt_parts[0]).decode('utf-8').encode('utf-8')
+            
             kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,
-                salt=salt,
-                iterations=iterations,
+                salt=db_salt,
+                iterations=100000,
                 backend=default_backend()
             )
             key = base64.urlsafe_b64encode(kdf.derive(password))
@@ -613,17 +644,23 @@ class MigrationKnowledgeBase:
         for category in ['annotations', 'dependencies', 'configurations', 'imports', 'types', 'code_patterns']:
             for item in merged[category]:
                 pattern = item.get('spring_pattern', '')
+                entry_id = item.get('id', '')
                 if pattern:
-                    existing_patterns.add((category, pattern))
+                    # Use ID if available to allow version variations, otherwise pattern
+                    key = (category, entry_id) if entry_id else (category, pattern)
+                    existing_patterns.add(key)
         
         # Add enhanced dataset entries that don't conflict
         for category in ['annotations', 'dependencies', 'configurations', 'imports', 'types', 'code_patterns']:
             enhanced_items = enhanced_standard.get(category, [])
             for item in enhanced_items:
                 pattern = item.get('spring_pattern', '')
-                if pattern and (category, pattern) not in existing_patterns:
-                    merged[category].append(item)
-                    existing_patterns.add((category, pattern))
+                entry_id = item.get('id', '')
+                if pattern:
+                    key = (category, entry_id) if entry_id else (category, pattern)
+                    if key not in existing_patterns:
+                        merged[category].append(item)
+                        existing_patterns.add(key)
         
         print(f"[INFO] Merged datasets:")
         print(f"  â€¢ Main dataset: {len(main_dataset.get('annotations', []))} annotations, {len(main_dataset.get('types', []))} types")

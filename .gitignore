@@ -51,11 +51,11 @@ fix_dataset_critical.json
 # Examples (Spring and Micronaut projects)
 # Allow directory structure and README but exclude actual project files
 examples/spring/*
-!examples/spring/.gitkeep
 examples/micronaut/*
-!examples/micronaut/.gitkeep
 !examples/README.md
 examples/test_output
+output_test/
+output_test_mono/
 demo_source/
 maven_search.txt
 dontcommit.txt
@@ -119,6 +119,11 @@ count_*.py
 dataset_builder.py
 deduplicate_dataset.py
 generate_enhanced_dataset.py
+rebuild_vector_db.py
+test_encrypted_datasets.py
+test_redis_config_fix.py
+verify_dataset.py
+verify_entries.py
 
 # Debug files
 llm_response_debug.txt
@@ -126,7 +131,8 @@ redis_config_llm_prompt.txt
 *.debug
 *.log.txt
 
-# Deployment files (for future use, not for beta)
+# Deployment and Vault files (Internal GA Maintenance)
+.vault/
 Procfile
 key_server.py
 key_client.py

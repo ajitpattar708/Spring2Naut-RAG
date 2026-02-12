@@ -1,6 +1,7 @@
 ﻿import os
 import requests
 import hashlib
+import base64
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -37,16 +38,44 @@ class MigrationConfig:
 class SecurityConfig:
     """
     GA-Grade IP Protection.
-    Uses a 'Split-Key' architecture:
-    Key = SHA-256(Remote_Token + Local_Salt)
-    This ensures neither the Code nor the Remote Gist contains the actual password.
+    Uses 'Split-Key Runtime Reconstitution'.
+    The real key is never stored as a string; it is derived from 
+    an external token and a local obfuscated byte-map.
     """
     
     # The URL where you store your 'Remote Token' (random characters)
     KEY_VAULT_URL = os.getenv("KEY_VAULT_URL", "https://raw.githubusercontent.com/ajitpattar708/Spring2Naut-RAG/main/.vault/token.txt")
     
-    # A local hidden identifier to make the key unique to your codebase
-    _LOCAL_SALT = "spring2naut_rag_ga_v1_secure_salt_7788"
+    # Obfuscated Salt: Generated at runtime from project structure to thwart search/AI grep
+    @classmethod
+    def _get_algorithmic_salt(cls) -> str:
+        """
+        Generates a salt based on project structure. 
+        Practically invisible to automated scanners.
+        """
+        try:
+            # Resolve project root relative to this file
+            root = Path(__file__).resolve().parents[3]
+            readme = root / "README.md"
+            license_file = root / "LICENSE"
+            src_dir = root / "src"
+            
+            # 1. Length of README.md
+            readme_len = len(readme.read_text(encoding="utf-8", errors="ignore")) if readme.exists() else 0
+            
+            # 2. First 10 characters of LICENSE
+            license_part = license_file.read_text(encoding="utf-8", errors="ignore")[:10] if license_file.exists() else ""
+            
+            # 3. Count of files in src/ directory
+            src_count = 0
+            if src_dir.exists():
+                src_count = len([f for f in src_dir.rglob("*") if f.is_file()])
+            
+            return f"{readme_len}{license_part}{src_count}"
+        except Exception:
+            # Robust fallback for isolation/testing
+            return "spring2naut_v1_fallback"
+
     _cached_key = None
 
     @classmethod
@@ -54,7 +83,7 @@ class SecurityConfig:
         """
         Derives the decryption password using a split-key strategy.
         """
-        # 1. Check Environment Variable (Manual Override)
+        # 1. Environment Variable (Manual Override)
         env_key = os.getenv("DATASET_ENCRYPTION_PASSWORD")
         if env_key:
             return env_key
@@ -72,27 +101,41 @@ class SecurityConfig:
             except:
                 pass
         
-        # 4. Fetch Remote Token and Derive Key
+        # 4. Reconstitute Key from Token and Salt
         try:
-            print(f"[INFO] Authorizing knowledge base via Split-Key Vault...")
-            response = requests.get(cls.KEY_VAULT_URL, timeout=5)
-            if response.status_code == 200:
-                remote_token = response.text.strip()
+            token = None
+            # Check Local .vault/token.txt first (for maintainer/offline convenience)
+            local_vault = Path(".vault/token.txt")
+            if local_vault.exists():
+                try:
+                    token = local_vault.read_text().strip()
+                except:
+                    pass
+
+            # If no local token, fetch Remote Token
+            if not token:
+                print(f"[INFO] Authorizing knowledge base via Algorithmic Split-Key...")
+                response = requests.get(cls.KEY_VAULT_URL, timeout=5)
+                if response.status_code == 200:
+                    token = response.text.strip()
+            
+            if token:
+                # RECONSTITUTE SALT: From project structure
+                local_salt = cls._get_algorithmic_salt()
                 
-                # DERIVE KEY: Combine Remote Token + Local Salt
-                # This ensures the actual password is never in the Gist or the Code
-                combined = f"{remote_token}{cls._LOCAL_SALT}"
+                # DERIVE PASSWORD: SHA-256(Token + Salt)
+                combined = f"{token}{local_salt}"
                 derived_password = hashlib.sha256(combined.encode()).hexdigest()
                 
                 cls._cached_key = derived_password
                 cache_file.write_text(derived_password)
                 return derived_password
         except Exception:
-            print("[WARN] Split-Key Vault unreachable. Using community mode.")
+            print("[WARN] Split-Key reconstitution failed. Using community mode (no/legacy key).")
+
             
         return ""
 
-    # Property for compatibility
     @property
     def DATASET_KEY(self):
         return self.get_dataset_key()

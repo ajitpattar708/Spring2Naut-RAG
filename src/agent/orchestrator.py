@@ -19,8 +19,6 @@ class MigrationOrchestrator:
         
         # Initialize internal services
         self.kb = LocalMigrationKnowledgeBase()
-        # Initialize knowledge base with datasets
-        self.kb.load_dataset() 
         # Note: In a real scenario, we would also call initialize_knowledge_base
         # but for this test, we assume the VDB is pre-populated or handled by load_dataset
         
