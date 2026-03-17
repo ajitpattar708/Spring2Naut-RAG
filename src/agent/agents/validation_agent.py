@@ -12,6 +12,7 @@ class ValidationAgent:
 
     def __init__(self, build_tool: str = "maven"):
         self.build_tool = build_tool.lower()
+        self.last_output = ""
 
     def validate(self, project_path: str) -> Tuple[bool, List[str]]:
         """
@@ -39,7 +40,8 @@ class ValidationAgent:
             )
             
             success = result.returncode == 0
-            errors = self._parse_maven_errors(result.stdout) if not success else []
+            self.last_output = result.stdout + "\n" + result.stderr
+            errors = self._parse_maven_errors(self.last_output) if not success else []
             
             return success, errors
         except Exception as e:
@@ -64,7 +66,8 @@ class ValidationAgent:
             )
             
             success = result.returncode == 0
-            errors = self._parse_gradle_errors(result.stdout) if not success else []
+            self.last_output = result.stdout + "\n" + result.stderr
+            errors = self._parse_gradle_errors(self.last_output) if not success else []
             
             return success, errors
         except Exception as e:
@@ -73,16 +76,30 @@ class ValidationAgent:
     def _parse_maven_errors(self, stdout: str) -> List[str]:
         """
         Extracts specific compilation error messages from Maven output.
-        Focuses on file paths and error descriptions.
+        Fails gracefully if no specific Java errors found but build failed.
         """
         errors = []
         # Pattern to find [ERROR] lines with file info
         lines = stdout.split('\n')
         for line in lines:
+            # Catch standard Java compilation errors
             if "[ERROR]" in line and (".java:" in line or "error:" in line.lower()):
                 errors.append(line.strip())
+            # Catch dependency resolution/missing parent POM issues
+            elif "[ERROR]" in line and ("Could not find artifact" in line or "Non-resolvable parent POM" in line):
+                errors.append(line.strip())
+            # Catch Micronaut-specific annotation processing errors
+            elif "error: Failed to extract" in line or "error: Cannot build" in line:
+                errors.append(line.strip())
         
-        # Limit to first 10 errors to avoid overloading the LLM context
+        # If no specific errors found but build failed (this logic is called after checking returncode)
+        if not errors:
+            # Check for generic fatal failures
+            for line in lines:
+                if "FATAL" in line or "BUILD FAILURE" in line:
+                    errors.append(line.strip())
+                    
+        # Limit to avoid context bloat
         return errors[:10]
 
     def _parse_gradle_errors(self, stdout: str) -> List[str]:

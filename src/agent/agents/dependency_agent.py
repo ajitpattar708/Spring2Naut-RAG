@@ -53,13 +53,129 @@ class DependencyAgent:
                     changes["parent"] = "Updated to micronaut-parent"
 
             # Step 2: Mapping individual dependencies
-            dependencies = root.find("maven:dependencies", ns)
-            if dependencies is not None:
-                for dep in dependencies.findall("maven:dependency", ns):
-                    art = dep.find("maven:artifactId", ns)
-                    if art is not None and "spring-boot-starter" in art.text:
-                        # Logic to replace starts with Micronaut equivalents
-                        pass
+            dependencies_node = root.find("maven:dependencies", ns)
+            if dependencies_node is not None:
+                # First pass: find and remove spring-specific management nodes
+                dep_mgmt = root.find("maven:dependencyManagement", ns)
+                if dep_mgmt is not None:
+                    # Search for spring/cloud BOMs and remove
+                    for dep in dep_mgmt.findall(".//maven:dependency", ns):
+                        art = dep.find("maven:artifactId", ns)
+                        if art is not None and ("spring-boot-dependencies" in art.text or "spring-cloud-dependencies" in art.text):
+                            changes[art.text] = "Removed from Management"
+                            # Need to find the parent of this dependency node and remove it
+                            # Usually it's <dependencies> inside <dependencyManagement>
+                            parent_node = root.find(".//maven:dependencyManagement/maven:dependencies", ns)
+                            if parent_node is not None:
+                                parent_node.remove(dep)
+                
+                # Step 3: Replace Spring plugins with Micronaut
+                build_node = root.find("maven:build", ns)
+                if build_node is not None:
+                    plugins = build_node.find("maven:plugins", ns)
+                    if plugins is not None:
+                        for plugin in plugins.findall("maven:plugin", ns):
+                            art = plugin.find("maven:artifactId", ns)
+                            if art is not None and "spring-boot-maven-plugin" in art.text:
+                                group = plugin.find("maven:groupId", ns)
+                                if group is not None: group.text = "io.micronaut.maven"
+                                art.text = "micronaut-maven-plugin"
+                                changes["spring-boot-maven-plugin"] = "micronaut-maven-plugin"
+
+                # Step 4: Individual Dependency Replacement (RAG-based)
+                # We'll collect nodes to remove to avoid concurrent modification issues
+                to_remove = []
+                
+                for dep in dependencies_node.findall("maven:dependency", ns):
+                    group = dep.find("maven:groupId", ns)
+                    artifact = dep.find("maven:artifactId", ns)
+                    version = dep.find("maven:version", ns)
+                    
+                    if artifact is not None:
+                        artifact_id = artifact.text
+                        group_id = group.text if group is not None else ""
+                        
+                        # Search for Micronaut equivalent
+                        rules = self.kb.search_dependency(artifact_id)
+                        
+                        if rules:
+                            rule = rules[0]
+                            if ":" in rule.micronaut_pattern:
+                                m_group, m_art = rule.micronaut_pattern.split(":")
+                                if group is not None: group.text = m_group
+                                artifact.text = m_art
+                                if version is not None: dep.remove(version)
+                                changes[artifact_id] = rule.micronaut_pattern
+                                continue
+                            elif rule.micronaut_pattern == "REMOVE":
+                                to_remove.append(dep)
+                                changes[artifact_id] = "Removed"
+                                continue
+                        
+                        # EXPERT FALLBACKS: Handle known Spring/Managed orphans
+                        # 1. Broad Spring Detection (any group containing 'spring')
+                        if "spring" in group_id.lower() or "spring" in artifact_id.lower():
+                             if "web" in artifact_id:
+                                 if group is not None: group.text = "io.micronaut"
+                                 artifact.text = "micronaut-http-server-netty"
+                                 if version is not None: dep.remove(version)
+                                 changes[artifact_id] = "io.micronaut:micronaut-http-server-netty"
+                             elif "test" in artifact_id:
+                                 if group is not None: group.text = "io.micronaut.test"
+                                 artifact.text = "micronaut-test-junit5"
+                                 if version is not None: dep.remove(version)
+                                 # Ensure scope is test
+                                 scope = dep.find("maven:scope", ns)
+                                 if scope is None:
+                                     scope = ET.SubElement(dep, "scope")
+                                     scope.text = "test"
+                                 changes[artifact_id] = "io.micronaut.test:micronaut-test-junit5"
+                             elif "cloud-gateway" in artifact_id:
+                                 if group is not None: group.text = "io.micronaut"
+                                 artifact.text = "micronaut-http-client"
+                                 # Standard client for basic gateway proxy logic
+                                 if version is not None: dep.remove(version)
+                                 changes[artifact_id] = "io.micronaut:micronaut-http-client"
+                             else:
+                                 # Kill any other spring artifacts that will fail the build
+                                 to_remove.append(dep)
+                                 changes[artifact_id] = f"Removed {artifact_id} (Orphaned Spring dependency)"
+                             continue
+
+                        # 2. Handle non-Spring orphans (dependencies with no version that Micronaut doesn't manage)
+                        if version is None:
+                            # Known orphans from Spring BOM
+                            if "jedis" in artifact_id.lower():
+                                if group is not None: group.text = "io.micronaut.redis"
+                                artifact.text = "micronaut-redis-lettuce"
+                                # Micronaut-Redis-Lettuce needs version if not managed by Micronaut-BOM
+                                version_node = ET.SubElement(dep, "version")
+                                version_node.text = "6.4.1" # Stable version for Micronaut 4
+                                changes[artifact_id] = "io.micronaut.redis:micronaut-redis-lettuce (Migrated from Jedis)"
+                            elif "ehcache" in artifact_id.lower():
+                                if group is not None: group.text = "io.micronaut.cache"
+                                artifact.text = "micronaut-cache-ehcache"
+                                version_node = ET.SubElement(dep, "version")
+                                version_node.text = "4.0.0" 
+                                changes[artifact_id] = "io.micronaut.cache:micronaut-cache-ehcache"
+                            elif "h2" == artifact_id.lower():
+                                # Micronaut manages H2 version
+                                pass
+                            elif "lombok" == artifact_id.lower():
+                                # Micronaut manages Lombok version
+                                pass
+                            else:
+                                # For unknown orphans, we must either remove them or they will break the build
+                                # Better to remove and let the user add them back with a version if they really need them
+                                to_remove.append(dep)
+                                changes[artifact_id] = f"Removed {artifact_id} (No version specified and not managed by Micronaut)"
+
+                # Finalize removals
+                for dep in to_remove:
+                    try:
+                        dependencies_node.remove(dep)
+                    except ValueError:
+                        pass # Already removed
             
             # Save the updated POM
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
