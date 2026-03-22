@@ -1,0 +1,20 @@
+{
+  "status": "blocking",
+  "repository_intelligence_summary": {
+    "finding_count": 6,
+    "affected_dependency_count": 1,
+    "severity_counts": {
+      "blocking": 1,
+      "review": 4,
+      "info": 1
+    },
+    "codes": [
+      "repository_child_micronaut_version_drift",
+      "repository_child_version_unresolved",
+      "repository_declared_javax_risk",
+      "repository_declared_spring_risk",
+      "repository_transitive_javax_risk",
+      "repository_transitive_spring_risk"
+    ]
+  }
+}

@@ -220,6 +220,37 @@ class VersionCompatibilityMatrix:
         return True
 
 
+def _is_explicit_three_part_version(version: Optional[str]) -> bool:
+    if not version:
+        return False
+    cleaned = version.strip().lower()
+    if "x" in cleaned or "*" in cleaned:
+        return False
+    parts = cleaned.split(".")
+    return len(parts) == 3 and all(part.isdigit() for part in parts)
+
+
+def validate_cli_target_versions(
+    spring_version: Optional[str],
+    micronaut_version: Optional[str],
+) -> None:
+    if spring_version is not None:
+        if not _is_explicit_three_part_version(spring_version):
+            raise ValueError(
+                "CLI Spring version must be an explicit three-part version like 3.4.5."
+            )
+        if not spring_version.startswith("3."):
+            raise ValueError("CLI Spring version must stay on the Spring Boot 3.x line.")
+
+    if micronaut_version is not None:
+        if not _is_explicit_three_part_version(micronaut_version):
+            raise ValueError(
+                "CLI Micronaut version must be an explicit three-part version like 4.10.8 or 4.5.7."
+            )
+        if not micronaut_version.startswith("4."):
+            raise ValueError("CLI Micronaut version must stay on the Micronaut 4.x line.")
+
+
 # ==================== Data Models ====================
 
 @dataclass
@@ -3162,90 +3193,17 @@ class DependencyAgent:
     def _get_platform_version(self, micronaut_version: str) -> str:
         """
         Get the Micronaut platform POM version from the framework version.
-        Maintains a mapping of Micronaut framework versions to compatible platform versions.
-        
-        The platform version (micronaut-platform/micronaut-parent) typically matches
-        the framework version, but there can be exceptions. This mapping ensures compatibility.
+        For the current migration flow, prefer the exact requested framework version so the
+        generated build files and platform lookups stay aligned with the user's target.
         """
         if not micronaut_version:
-            return "4.10.1"  # Default platform version
-        
-        # Mapping of Micronaut framework versions to platform versions
-        # This mapping is based on Micronaut's release structure where:
-        # - Platform versions typically match framework versions
-        # - For major.minor versions, use the first patch version of that series
-        # - Update this mapping as new versions are released
-        VERSION_MAPPING = {
-            # 4.x series
-            "4.0.0": "4.0.0",
-            "4.0.1": "4.0.1",
-            "4.0.2": "4.0.2",
-            "4.1.0": "4.1.0",
-            "4.1.1": "4.1.1",
-            "4.2.0": "4.2.0",
-            "4.2.1": "4.2.1",
-            "4.3.0": "4.3.0",
-            "4.3.1": "4.3.1",
-            "4.3.2": "4.3.2",
-            "4.3.3": "4.3.3",
-            "4.3.4": "4.3.4",
-            "4.3.5": "4.3.5",
-            "4.3.6": "4.3.6",
-            "4.3.7": "4.3.7",
-            "4.3.8": "4.3.8",
-            "4.4.0": "4.4.0",
-            "4.4.1": "4.4.1",
-            "4.5.0": "4.5.0",
-            "4.6.0": "4.6.0",
-            "4.7.0": "4.7.0",
-            "4.7.1": "4.7.1",
-            "4.8.0": "4.8.0",
-            "4.9.0": "4.9.0",
-            "4.10.0": "4.10.1",  # 4.10.0 framework uses 4.10.1 platform
-            "4.10.1": "4.10.1",
-            "4.10.2": "4.10.1",  # 4.10.x series uses 4.10.1 platform
-            "4.10.3": "4.10.1",
-            "4.10.4": "4.10.1",
-            "4.10.5": "4.10.1",
-            "4.10.6": "4.10.1",
-            "4.10.7": "4.10.1",
-            "4.10.8": "4.10.1",
-        }
-        
-        # Check exact match first
-        if micronaut_version in VERSION_MAPPING:
-            return VERSION_MAPPING[micronaut_version]
-        
-        # For versions not in mapping, try to infer
+            return "4.10.8"
+
         version_parts = micronaut_version.split('.')
-        if len(version_parts) >= 3:
-            major, minor, patch = version_parts[0], version_parts[1], version_parts[2]
-            major_minor = f"{major}.{minor}"
-            
-            # For 4.10.x series, use 4.10.1 platform
-            if major_minor == "4.10":
-                return "4.10.1"
-            
-            # For other versions, try exact match or use first patch version
-            # Check if there's a mapping for the major.minor.0 version
-            major_minor_patch = f"{major}.{minor}.0"
-            if major_minor_patch in VERSION_MAPPING:
-                return VERSION_MAPPING[major_minor_patch]
-            
-            # Default: use the exact version (platform typically matches framework)
-            return micronaut_version
-        elif len(version_parts) == 2:
-            # Only major.minor provided
-            major_minor = micronaut_version
-            if major_minor == "4.10":
-                return "4.10.1"
-            # Try to find first patch version
-            for key in sorted(VERSION_MAPPING.keys()):
-                if key.startswith(f"{major_minor}."):
-                    return VERSION_MAPPING[key]
+        if len(version_parts) == 2:
             return f"{micronaut_version}.0"
-        
-        return "4.10.1"  # Default fallback
+
+        return micronaut_version
         
     def migrate_maven_pom(self, pom_path: str, output_path: str) -> Dict[str, str]:
         """Migrate Maven pom.xml - Comprehensive migration"""
@@ -3314,6 +3272,24 @@ class DependencyAgent:
                 print(f"[OK] Added {len([k for k in self.platform_properties.keys() if 'version' in k.lower()])} version properties from platform POM")
             elif using_micronaut_parent:
                 print(f"[INFO] Using micronaut-parent - version properties are inherited, no need to define them")
+
+            # Remove Spring Boot Maven plugin; it has no place in the migrated Micronaut build.
+            build = root.find('maven:build', ns)
+            if build is not None:
+                plugins = build.find('maven:plugins', ns)
+                if plugins is not None:
+                    plugins_to_remove = []
+                    for plugin in plugins.findall('maven:plugin', ns):
+                        plugin_group = plugin.find('maven:groupId', ns)
+                        plugin_artifact = plugin.find('maven:artifactId', ns)
+                        group_text = plugin_group.text if plugin_group is not None and plugin_group.text else ''
+                        artifact_text = plugin_artifact.text if plugin_artifact is not None and plugin_artifact.text else ''
+                        if group_text == 'org.springframework.boot' or artifact_text == 'spring-boot-maven-plugin':
+                            plugins_to_remove.append(plugin)
+                    for plugin in plugins_to_remove:
+                        plugins.remove(plugin)
+                    if plugins_to_remove:
+                        changes['spring-boot-maven-plugin'] = 'REMOVED'
             
             # Add Java compiler properties if not present
             java_source_prop = properties.find('maven:maven.compiler.source', ns)
@@ -3741,17 +3717,23 @@ class DependencyAgent:
                                     artifact_id
                                 )
                             
-                            # Update or add version using the property
-                            if version_elem is not None:
-                                # Update existing version to use property
-                                old_version = version_elem.text
-                                version_elem.text = f'${{{version_prop}}}'
-                                changes[f'{artifact_id}.version'] = f'UPDATED from {old_version} to ${{{version_prop}}}'
+                            if using_micronaut_parent:
+                                if version_elem is not None:
+                                    old_version = version_elem.text
+                                    dep.remove(version_elem)
+                                    changes[f'{artifact_id}.version.cleanup'] = f'REMOVED {old_version} (inherits from micronaut-parent)'
                             else:
-                                # Add version using property
-                                version_elem = ET.SubElement(dep, '{http://maven.apache.org/POM/4.0.0}version')
-                                version_elem.text = f'${{{version_prop}}}'
-                                changes[f'{artifact_id}.version'] = f'SET to ${{{version_prop}}} (from platform POM)'
+                                # Update or add version using the property
+                                if version_elem is not None:
+                                    # Update existing version to use property
+                                    old_version = version_elem.text
+                                    version_elem.text = f'${{{version_prop}}}'
+                                    changes[f'{artifact_id}.version'] = f'UPDATED from {old_version} to ${{{version_prop}}}'
+                                else:
+                                    # Add version using property
+                                    version_elem = ET.SubElement(dep, '{http://maven.apache.org/POM/4.0.0}version')
+                                    version_elem.text = f'${{{version_prop}}}'
+                                    changes[f'{artifact_id}.version'] = f'SET to ${{{version_prop}}} (from platform POM)'
                 
                 # Add transitive dependencies to dependencyManagement if using micronaut-parent
                 # These are dependencies found transitively but not in platform POM's dependencyManagement
@@ -3860,6 +3842,12 @@ class DependencyAgent:
                 content
             )
             changes['plugin'] = 'Spring Boot -> Micronaut Application'
+            content = re.sub(
+                r'^\s*id\s+["\']io\.spring\.dependency-management["\'].*\n?',
+                '',
+                content,
+                flags=re.MULTILINE,
+            )
             
             # Add/Update micronaut version property
             if 'micronautVersion' not in content and 'micronaut.version' not in content:
@@ -3904,23 +3892,37 @@ class DependencyAgent:
                     content = '\n'.join(new_lines)
             
             # Replace dependencies
-            for line in content.split('\n'):
-                if 'spring-boot-starter' in line:
-                    for dep_name in ['web', 'data-jpa', 'security', 'validation', 'test']:
-                        if dep_name in line:
-                            rules = self.kb.search_dependency(f'spring-boot-starter-{dep_name}', top_k=1)
-                            if rules:
-                                old_dep = f'spring-boot-starter-{dep_name}'
-                                new_dep = rules[0].micronaut_pattern
-                                # Remove version if present (BOM manages versions)
-                                line = re.sub(r'version\s+["\'][^"\']+["\']', '', line)
-                                content = content.replace(old_dep, new_dep)
-                                changes[old_dep] = new_dep
+            direct_gradle_mappings = {
+                'org.springframework.boot:spring-boot-starter-web': 'io.micronaut:micronaut-http-server-netty',
+                'org.springframework.boot:spring-boot-starter-data-jpa': 'io.micronaut.data:micronaut-data-hibernate-jpa',
+                'org.springframework.boot:spring-boot-starter-security': 'io.micronaut.security:micronaut-security',
+                'org.springframework.boot:spring-boot-starter-validation': 'io.micronaut.validation:micronaut-validation',
+                'org.springframework.boot:spring-boot-starter-test': 'io.micronaut.test:micronaut-test-junit5',
+            }
+            for old_dep, new_dep in direct_gradle_mappings.items():
+                if old_dep in content:
+                    content = content.replace(old_dep, new_dep)
+                    changes[old_dep.split(':', 1)[1]] = new_dep
             
             # Remove explicit versions from Micronaut dependencies (BOM manages them)
             content = re.sub(
-                r'(implementation|compile|api|runtime)\s+["\']io\.micronaut:[^"\']+["\']\s+version\s+["\'][^"\']+["\']',
-                r'\1 "\2"',
+                r'((?:implementation|compile|api|runtimeOnly|testImplementation)\s+[\"\'][^\"\']*io\.micronaut[^:\"\']*:[^:\"\']+):[^\"\']+([\"\'])',
+                r'\1\2',
+                content
+            )
+            content = re.sub(
+                r'((?:implementation|compile|api|runtimeOnly|testImplementation)\s+[\"\'][^\"\']*io\.micronaut\.data:[^:\"\']+):[^\"\']+([\"\'])',
+                r'\1\2',
+                content
+            )
+            content = re.sub(
+                r'((?:implementation|compile|api|runtimeOnly|testImplementation)\s+[\"\'][^\"\']*io\.micronaut\.security:[^:\"\']+):[^\"\']+([\"\'])',
+                r'\1\2',
+                content
+            )
+            content = re.sub(
+                r'((?:implementation|compile|api|runtimeOnly|testImplementation)\s+[\"\'][^\"\']*io\.micronaut\.test:[^:\"\']+):[^\"\']+([\"\'])',
+                r'\1\2',
                 content
             )
             
@@ -5893,6 +5895,8 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
             rules = self.kb.search_annotation(f'@{pattern}', top_k=1)
             if rules:
                 rule = rules[0]
+                if rule.spring_pattern != f'@{pattern}':
+                    continue
                 # Replace using the pattern from knowledge base
                 old_pattern = f'@{pattern}'
                 new_pattern = rule.micronaut_pattern
@@ -5906,8 +5910,8 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
                     # Smart replacement - preserve parameters, but only replace once
                     # Use word boundary to prevent multiple replacements
                     content = re.sub(
-                        rf'\b@{pattern}(\s*\([^)]*\))?\b',
-                        lambda m: new_pattern + (m.group(1) if m.group(1) else ''),
+                        rf'(?<![\w.])@{pattern}(?=\s|\(|$)',
+                        new_pattern,
                         content
                     )
         
@@ -5966,9 +5970,11 @@ REMEMBER: Return ONLY code. Start with "package" and end with "}". No other text
                     # CRITICAL: Replace annotation - use word boundary to avoid partial matches
                     # But also handle cases where annotation is on its own line
                     # Pattern: @Configuration (standalone) or @Configuration\n
-                    content = re.sub(r'^(\s*)' + re.escape(spring_ann) + r'(\s*)$', r'\1' + micronaut_ann + r'\2', content, flags=re.MULTILINE)
-                    # Also replace in middle of line
-                    content = re.sub(r'\b' + re.escape(spring_ann) + r'\b', micronaut_ann, content)
+                    content = re.sub(
+                        re.escape(spring_ann) + r'(?=\s|\(|$)',
+                        micronaut_ann,
+                        content
+                    )
         
         # Fix @Bean annotation - remove "or @Singleton" patterns
         content = re.sub(r'@Bean\s+or\s+@Singleton(\s+or\s+@Singleton)*', '@Bean', content)
@@ -7800,6 +7806,7 @@ class MigrationOrchestrator:
         """Validate the migrated project by attempting to build it"""
         import subprocess
         import os
+        import shutil
         
         result = {'success': False, 'error': None}
         
@@ -7808,18 +7815,15 @@ class MigrationOrchestrator:
             os.chdir(project_path)
             
             if build_tool == "maven":
-                # Check if Maven is available
-                try:
-                    # Windows compatibility: shell=True is needed for mvn (batch file)
-                    subprocess.run(['mvn', '--version'], capture_output=True, check=True, timeout=5, shell=True)
-                except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                mvn_cmd = shutil.which('mvn')
+                if not mvn_cmd:
                     result['error'] = "Maven not found in PATH or failed to execute - skipping build validation"
                     os.chdir(original_dir)
                     return result
                 
                 # Try to compile with Maven
                 process = subprocess.run(
-                    ['mvn', 'clean', 'compile', '-q'],
+                    [mvn_cmd, 'clean', 'compile', '-q'],
                     capture_output=True,
                     text=True,
                     timeout=120
@@ -7829,14 +7833,20 @@ class MigrationOrchestrator:
                 else:
                     result['error'] = process.stderr[:500] if process.stderr else "Build failed"
             else:  # Gradle
-                # Check if Gradle wrapper exists
-                if not os.path.exists('./gradlew') and not os.path.exists('./gradlew.bat'):
-                    result['error'] = "Gradle wrapper not found - skipping build validation"
+                gradle_cmd = None
+                if os.path.exists('./gradlew'):
+                    gradle_cmd = './gradlew'
+                elif os.path.exists('./gradlew.bat'):
+                    gradle_cmd = './gradlew.bat'
+                else:
+                    gradle_cmd = shutil.which('gradle')
+
+                if not gradle_cmd:
+                    result['error'] = "Gradle wrapper or gradle command not found - skipping build validation"
                     os.chdir(original_dir)
                     return result
                 
                 # Try to compile with Gradle
-                gradle_cmd = './gradlew.bat' if os.name == 'nt' else './gradlew'
                 process = subprocess.run(
                     [gradle_cmd, 'clean', 'compileJava', '--quiet'],
                     capture_output=True,
@@ -7965,6 +7975,7 @@ Examples:
     args = parser.parse_args()
     
     if args.command == 'migrate':
+        validate_cli_target_versions(args.spring_version, args.micronaut_version)
         orchestrator = MigrationOrchestrator(
             spring_version=args.spring_version,
             micronaut_version=args.micronaut_version

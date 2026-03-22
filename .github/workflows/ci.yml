@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_file.txt
+          pip install build twine
+
+      - name: Run regression suite
+        run: python scripts/run_regression_suite.py --tier full
+
+      - name: Initialize corpus layout
+        run: python -m src.agent.patterns.repository --root /tmp/spring2naut-corpus --init
+
+      - name: Validate corpus layout
+        run: python -m src.agent.patterns.repository --root /tmp/spring2naut-corpus --validate
+
+      - name: Materialize promotion outputs
+        run: python -m src.agent.patterns.promotion --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Generate fixture registry
+        run: python -m src.agent.patterns.fixture_registry --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Seed generic fixture packs
+        run: python -m src.agent.patterns.fixture_packs --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Validate fixture execution readiness
+        run: python -m src.agent.patterns.fixture_execution --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Compile seeded fixture packs offline
+        run: python -m src.agent.patterns.fixture_compile --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Build validated release dataset
+        run: python -m src.agent.patterns.release --corpus-root /tmp/spring2naut-corpus --base-dataset migration_dataset.json.dat --write
+
+      - name: Smoke test validated release dataset in ChromaDB
+        run: python -m src.agent.rag.kb_release_smoke --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Audit persisted Chroma metadata trust
+        run: python -m src.agent.rag.chroma_audit --corpus-root /tmp/spring2naut-corpus --write
+
+      - name: Dependency audit gate for clean Maven fixture
+        run: |
+          python -m src.agent.agents.dependency_audit \
+            --build-file tests/fixtures/dependency_audit/maven_clean/pom.xml \
+            --dependency-tree tests/fixtures/dependency_audit/maven_clean/dependency_tree.txt \
+            --spring-version 3.4.5 \
+            --micronaut-version 4.10.8 \
+            --report /tmp/spring2naut-corpus/validated_patterns/release/dependency_audit_maven_fixture.json \
+            --fail-on blocking
+
+      - name: Dependency audit gate for clean Gradle fixture
+        run: |
+          python -m src.agent.agents.dependency_audit \
+            --build-file tests/fixtures/dependency_audit/gradle_clean/build.gradle.kts \
+            --dependency-tree tests/fixtures/dependency_audit/gradle_clean/dependencies.txt \
+            --spring-version 3.4.5 \
+            --micronaut-version 4.10.8 \
+            --report /tmp/spring2naut-corpus/validated_patterns/release/dependency_audit_gradle_fixture.json \
+            --fail-on blocking
+
+      - name: Validate knowledge base round-trip
+        run: python -m src.agent.rag.kb_validator
+
+      - name: Run GA release gate
+        run: python scripts/run_ga_release_gate.py --report /tmp/spring2naut-corpus/ga_release_gate_report.json
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*

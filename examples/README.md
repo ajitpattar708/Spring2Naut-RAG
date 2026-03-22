@@ -28,4 +28,5 @@ examples/
 - The `spring/` and `micronaut/` directories are excluded from git
 - You can create your own Spring Boot projects here for testing
 - This directory structure is provided as a convenience
-
+- Do not keep nested VCS metadata, IDE folders, build output, keys, or secrets in example projects
+- Before sharing or packaging the repo, remove `.git/`, `.idea/`, `.settings/`, `target/`, `privateKey.key`, `.classpath`, and `.project` from example apps

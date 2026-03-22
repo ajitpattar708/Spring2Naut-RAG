@@ -1,0 +1,24 @@
+{
+  "status": "completed_with_warnings",
+  "build_tool": "gradle",
+  "spring_version": "3.4.5",
+  "micronaut_version": "4.10.8",
+  "validation_success": true,
+  "validation_attempts": 1,
+  "dependency_audit": {
+    "status": "review",
+    "severity_counts": {
+      "blocking": 0,
+      "review": 2,
+      "info": 0
+    }
+  },
+  "migrated_dependency_audit": {
+    "status": "pass",
+    "severity_counts": {
+      "blocking": 0,
+      "review": 0,
+      "info": 2
+    }
+  }
+}
