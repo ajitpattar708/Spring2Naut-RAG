@@ -1,0 +1,77 @@
+name: Release Artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-release-artifacts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install runtime and packaging dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_file.txt
+          pip install build twine
+
+      - name: Run executable GA gate
+        run: python scripts/run_ga_release_gate.py
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Validate built artifacts
+        run: python -m twine check dist/*
+
+      - name: Generate release manifest and checksums
+        run: |
+          python scripts/build_release_manifest.py \
+            --dist-dir dist \
+            --report reports/ga_release_gate_report.json \
+            --output-manifest dist/release_manifest.json \
+            --output-checksums dist/SHA256SUMS
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spring2naut-dist
+          path: dist/*
+
+      - name: Upload GA gate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: spring2naut-ga-gate-report
+          path: reports/ga_release_gate_report.json
+
+      - name: Upload release integrity files
+        uses: actions/upload-artifact@v4
+        with:
+          name: spring2naut-release-integrity
+          path: |
+            dist/release_manifest.json
+            dist/SHA256SUMS
+
+      - name: Publish GitHub release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+            reports/ga_release_gate_report.json

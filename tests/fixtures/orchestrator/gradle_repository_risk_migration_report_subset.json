@@ -1,0 +1,42 @@
+{
+  "status": "completed_with_warnings",
+  "build_tool": "gradle",
+  "spring_version": "3.4.5",
+  "micronaut_version": "4.10.8",
+  "validation_success": true,
+  "validation_attempts": 1,
+  "dependency_audit": {
+    "status": "blocking",
+    "severity_counts": {
+      "blocking": 2,
+      "review": 6,
+      "info": 1
+    },
+    "repository_intelligence_summary": {
+      "finding_count": 6,
+      "affected_dependency_count": 1,
+      "severity_counts": {
+        "blocking": 1,
+        "review": 4,
+        "info": 1
+      }
+    }
+  },
+  "migrated_dependency_audit": {
+    "status": "blocking",
+    "severity_counts": {
+      "blocking": 3,
+      "review": 5,
+      "info": 1
+    },
+    "repository_intelligence_summary": {
+      "finding_count": 6,
+      "affected_dependency_count": 1,
+      "severity_counts": {
+        "blocking": 1,
+        "review": 4,
+        "info": 1
+      }
+    }
+  }
+}

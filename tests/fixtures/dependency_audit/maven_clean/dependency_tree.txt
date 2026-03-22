@@ -1,0 +1,4 @@
+[INFO] com.example:micronaut-clean-sample:jar:1.0.0
+[INFO] +- io.micronaut:micronaut-http-server-netty:jar:4.10.8:compile
+[INFO] |  \- io.micronaut:micronaut-http-netty:jar:4.10.8:compile
+[INFO] \- io.micronaut:micronaut-runtime:jar:4.10.8:compile

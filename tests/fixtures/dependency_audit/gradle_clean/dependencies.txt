@@ -1,0 +1,4 @@
+runtimeClasspath - Runtime classpath of source set 'main'.
++--- io.micronaut:micronaut-http-server-netty:4.10.8
+|    \--- io.micronaut:micronaut-http-netty:4.10.8
+\--- io.micronaut:micronaut-runtime:4.10.8
