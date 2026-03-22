@@ -1,18 +1,14 @@
-﻿import requests
-import json
 from typing import Optional
 from src.agent.core.config import MigrationConfig
+from src.agent.core.interfaces import LLMProvider
 
-class LLMProvider:
-    """
-    Abstract base class for Large Language Model interaction.
-    Facilitates structured code generation and transformation.
-    """
-    def is_available(self) -> bool:
-        raise NotImplementedError
-        
-    def generate(self, prompt: str, system_prompt: str = "") -> str:
-        raise NotImplementedError
+
+def _get_requests_module():
+    try:
+        import requests
+    except ImportError:
+        return None
+    return requests
 
 class OllamaProvider(LLMProvider):
     """
@@ -28,6 +24,9 @@ class OllamaProvider(LLMProvider):
         Check if the local Ollama service is reachable.
         """
         try:
+            requests = _get_requests_module()
+            if requests is None:
+                return False
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             return response.status_code == 200
         except Exception:
@@ -49,6 +48,9 @@ class OllamaProvider(LLMProvider):
         }
         
         try:
+            requests = _get_requests_module()
+            if requests is None:
+                return ""
             response = requests.post(url, json=payload, timeout=MigrationConfig.LLM_TIMEOUT)
             if response.status_code == 200:
                 result = response.json()
@@ -91,6 +93,9 @@ class OpenAIProvider(LLMProvider):
         }
         
         try:
+            requests = _get_requests_module()
+            if requests is None:
+                return ""
             response = requests.post(url, headers=headers, json=payload, timeout=MigrationConfig.LLM_TIMEOUT)
             if response.status_code == 200:
                 result = response.json()

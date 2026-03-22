@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+if [[ ! -x "scripts/run_local_guardrails.sh" ]]; then
+  chmod +x scripts/run_local_guardrails.sh
+fi
+
+./scripts/run_local_guardrails.sh --stage pre-commit

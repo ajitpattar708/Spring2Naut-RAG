@@ -37,6 +37,10 @@ ENV/
 
 # ChromaDB / Vector Database
 migration_db/
+migration_db_legacy/
+migration_db_candidate/
+migration_db_extended/
+migration_db_max/
 *.db
 *.sqlite3
 
@@ -44,15 +48,28 @@ migration_db/
 # Encrypted .dat files ARE committed (users need them to run agent)
 migration_dataset.json
 migration_dataset_enhanced.json
+migration_dataset_enhanced_cleaned.json.dat
 fix_dataset_critical.json
 *.json.bak
 *.decrypted.json
 
 # Examples (Spring and Micronaut projects)
-# Allow directory structure and README but exclude actual project files
-examples/spring/*
+# Keep the source Spring sample in Git; keep generated Micronaut outputs out of Git.
+examples/micronaut/
 examples/micronaut/*
+examples/mcironaut/*
+examples/micronaut_e2e_check/
+!examples/micronaut/.gitkeep
 !examples/README.md
+!examples/spring/
+!examples/spring/**
+examples/**/.git/
+examples/**/target/
+examples/**/build/
+examples/**/.gradle/
+examples/**/.idea/
+examples/**/.vscode/
+examples/**/.DS_Store
 examples/test_output
 output_test/
 output_test_mono/
@@ -61,6 +78,7 @@ maven_search.txt
 dontcommit.txt
 llm_response_debug.txt
 redis_config_llm_prompt.txt
+~$*
 
 # Logs
 *.log
@@ -95,6 +113,7 @@ htmlcov/
 
 # Migration reports
 migration-report.json
+reports/
 
 # Build artifacts (PyInstaller)
 build/
@@ -110,6 +129,40 @@ __pycache__/
 *.md
 !README.md
 !USER_GUIDE.md
+docs/BEGINNER_GUIDE_TO_CORPUS.md
+docs/dataset_cleaning_report.json
+docs/internal/
+
+# Corpus acquisition artifacts and local source dumps
+corpus/
+corpus/**/raw/downloads/
+corpus/**/raw/cache/
+corpus/**/raw/repos/
+corpus/**/raw/tmp/
+corpus/**/raw/**/*.html
+corpus/**/raw/**/*.md
+corpus/**/raw/**/*.txt
+corpus/**/raw/**/*.zip
+corpus/**/raw/**/*.tar
+corpus/**/raw/**/*.tar.gz
+corpus/**/raw/**/*.tgz
+corpus/**/raw/**/*.csv
+corpus/**/raw/**/*.parquet
+corpus/**/raw/**/*.sqlite
+corpus/**/raw/**/*.db
+corpus/**/raw/**/*.repo.json
+corpus/**/raw/**/*.snapshot.json
+corpus/**/validated_patterns/**/runtime_dataset.json
+corpus/**/validated_patterns/**/kb_smoke_report.json
+corpus/**/validated_patterns/**/chroma_audit_report.json
+corpus/**/validated_patterns/**/target_runtime_datasets/
+corpus/**/validated_patterns/**/target_profiles/
+corpus/**/validated_patterns/**/fixture_execution_report.json
+corpus/**/validated_patterns/**/fixture_compile_report.json
+corpus/**/validated_patterns/**/fixture_registry.json
+corpus/**/validated_patterns/**/promotion_summary.json
+corpus/**/validated_patterns/**/legacy_promotion_summary.json
+corpus/**/validated_patterns/**/legacy_review_summary.json
 
 # Test scripts and utility scripts
 test_*.py
@@ -139,3 +192,9 @@ key_client.py
 key_client_supabase.py
 build_protected.py
 encrypt_dataset.py
+
+# Local workstation / IDE metadata
+.project
+.python-version
+Build
+Build/
