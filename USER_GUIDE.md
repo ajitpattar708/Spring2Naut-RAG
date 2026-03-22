@@ -117,6 +117,80 @@ This single command:
 - runs KB smoke checks
 - writes the persisted Chroma trust/distribution audit
 
+Healthy startup examples:
+
+Successful `init` startup:
+
+```text
+python main.py init --mode trusted --spring-version 3.0.0 --micronaut-version 4.10.8
+--------------------------------------------------
+Spring2Naut RAG Initialization
+Corpus Root: corpus
+Targeting: Spring 3.0.0 -> Micronaut 4.10.8
+Mode: trusted
+--------------------------------------------------
+[INFO] Indexing 356 patterns into Vector DB using microsoft/codebert-base...
+[INFO] This is a one-time operation. Subsequent runs will be near-instant.
+  > Progress: 356/356 (100.0%) | Est. Remaining: 0m 0s
+[OK] Intelligence Engine indexed with 356 patterns in 0m 0s.
+
+==================================================
+INITIALIZATION SUMMARY
+==================================================
+Raw Dataset Rules: 2849
+Governed Release Rules: 356
+Official Patterns: 39
+Indexed Trusted Rules: 356
+Trusted Rules Compatible With Target Pair: 356
+Trusted Target Runtime Dataset: corpus/validated_patterns/release/target_runtime_datasets/spring_3_0_0__micronaut_4_10_8.json
+Trusted Target Profile: line-aware (spring_line=3.0, micronaut_line=4.10)
+Trusted Line-Specific Rules: spring=15, micronaut=15, pair=15
+Trusted Compatible Rule Categories: annotations=39, code_patterns=287, configurations=2, dependencies=23, types=5
+Trusted Target Profile Report: corpus/validated_patterns/release/target_profiles/spring_3_0_0__micronaut_4_10_8.json
+Target Platform Managed Dependencies: 3549
+Target Platform Snapshot: corpus/validated_patterns/release/target_platforms/spring_3_0_0__micronaut_4_10_8.json
+Trusted DB Path: migration_db
+Trusted KB Manifest: migration_db/kb_manifest.json
+Governed Release Runtime Dataset: corpus/validated_patterns/release/runtime_dataset.json
+KB Smoke OK: True
+KB Smoke Report: corpus/validated_patterns/release/kb_smoke_report.json
+Chroma Audit Trust: high
+Distribution Ready: True
+Chroma Audit Report: corpus/validated_patterns/release/chroma_audit_report.json
+```
+
+Successful `migrate` startup:
+
+```text
+$ python main.py migrate examples/spring examples/micronaut --spring-version 3.0.0 --micronaut-version 4.10.8
+--------------------------------------------------
+Agentic Migration Initialized
+Targeting: Spring 3.0.0 -> Micronaut 4.10.8
+--------------------------------------------------
+No sentence-transformers model found with name microsoft/codebert-base. Creating a new one with mean pooling.
+[INFO] Intelligence Engine loaded with 356 cached patterns.
+[Runtime]
+  [LLM] provider=OllamaProvider configured=ollama model=codellama:7b status=reachable
+  [LLM] endpoint=http://localhost:11434
+  [VDB] engine=chromadb status=ready path=./migration_db
+  [VDB] embedding_model=microsoft/codebert-base dimension=768 trusted_rules=356
+  [VDB] initialized_for=Spring 3.0.0 -> Micronaut 4.10.8 mode=trusted compatible_rules=130
+  [VDB] target_profile=line-aware spring_line=3.0 micronaut_line=4.10 pair_line_specific=15
+  [VDB] using init snapshot for Micronaut 4.10.8
+  [VDB] managed deps loaded=3549
+  [VDB] snapshot channel=local_maven_repo
+  [VDB] target_platform_snapshot=3549 managed path=corpus/validated_patterns/release/target_platforms/spring_3_0_0__micronaut_4_10_8.json
+  [VDB] collections: annotations=39, dependencies=23, configurations=2, code_patterns=287, types=5
+Starting migration from examples/spring to examples/micronaut
+```
+
+What to check:
+- the exact Spring and Micronaut versions shown in startup match your command
+- the vector DB shows `status=ready`
+- the trusted rule count and target profile are present
+- `init` ends with `KB Smoke OK: True`
+- `migrate` reaches `Starting migration from ...` without an early fatal error
+
 What `init` versions really do:
 - `--spring-version` and `--micronaut-version` now materialize a filtered trusted runtime dataset under `corpus/validated_patterns/release/target_runtime_datasets/`
 - the trusted DB is initialized from that filtered dataset for the requested pair
@@ -318,9 +392,15 @@ python main.py migrate <path-to-spring-project> <path-to-output-directory> \
     --micronaut-version 4.10.8
 ```
 
+Build tool selection:
+- by default, the agent auto-detects the project build tool from the source project
+- if only Maven build files exist, it runs Maven validation
+- if only Gradle build files exist, it runs Gradle validation
+- if both `pom.xml` and `build.gradle` or `build.gradle.kts` exist, pass `--build-tool maven` or `--build-tool gradle` explicitly
+
 ### Step 4A: Run The Repository Sample
 
-If you want a known local sample before trying your own application, use the bundled Spring sample in [examples/spring/spring-petclinic](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/spring/spring-petclinic).
+If you want a known local sample before trying your own application, use the bundled Spring sample in `examples/spring/spring-petclinic`.
 
 Initialize the trusted dataset for the sample version pair:
 
@@ -350,8 +430,8 @@ How to use these commands:
 - use the same exact version pair for `init` and `migrate`
 - use `--build-tool maven` when you want Maven validation/build output
 - use `--build-tool gradle` when you want Gradle validation/build output
-- the generated sample project is written under [examples/micronaut/spring-petclinic](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/micronaut/spring-petclinic)
-- migration reports are written under [examples/micronaut/reports](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/micronaut/reports)
+- the generated sample project is written under `examples/micronaut/spring-petclinic`
+- migration reports are written under `examples/micronaut/reports`
 
 Recommended end-user sequence:
 1. find the real Spring Boot version in the source build file

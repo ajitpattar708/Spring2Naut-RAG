@@ -120,15 +120,98 @@ Recommended enterprise sequence:
 - Step 4: run `migrate` with the same exact version pair
 - Step 5: review `output/reports/` and then build/test the migrated project
 
+### 2C. What Healthy Startup Looks Like
+
+When users are first testing the tool, one of the most common questions is whether the runtime booted correctly.
+Below are representative successful startup examples for both `init` and `migrate`.
+
+Successful `migrate` startup example:
+
+```text
+$ python main.py migrate examples/spring examples/micronaut --spring-version 3.0.0 --micronaut-version 4.10.8
+--------------------------------------------------
+Agentic Migration Initialized
+Targeting: Spring 3.0.0 -> Micronaut 4.10.8
+--------------------------------------------------
+No sentence-transformers model found with name microsoft/codebert-base. Creating a new one with mean pooling.
+[INFO] Intelligence Engine loaded with 356 cached patterns.
+[Runtime]
+  [LLM] provider=OllamaProvider configured=ollama model=codellama:7b status=reachable
+  [LLM] endpoint=http://localhost:11434
+  [VDB] engine=chromadb status=ready path=./migration_db
+  [VDB] embedding_model=microsoft/codebert-base dimension=768 trusted_rules=356
+  [VDB] initialized_for=Spring 3.0.0 -> Micronaut 4.10.8 mode=trusted compatible_rules=130
+  [VDB] target_profile=line-aware spring_line=3.0 micronaut_line=4.10 pair_line_specific=15
+  [VDB] using init snapshot for Micronaut 4.10.8
+  [VDB] managed deps loaded=3549
+  [VDB] snapshot channel=local_maven_repo
+  [VDB] target_platform_snapshot=3549 managed path=corpus/validated_patterns/release/target_platforms/spring_3_0_0__micronaut_4_10_8.json
+  [VDB] collections: annotations=39, dependencies=23, configurations=2, code_patterns=287, types=5
+Starting migration from examples/spring to examples/micronaut
+```
+
+Successful `init` startup example:
+
+```text
+python main.py init --mode trusted --spring-version 3.0.0 --micronaut-version 4.10.8
+--------------------------------------------------
+Spring2Naut RAG Initialization
+Corpus Root: corpus
+Targeting: Spring 3.0.0 -> Micronaut 4.10.8
+Mode: trusted
+--------------------------------------------------
+[INFO] Indexing 356 patterns into Vector DB using microsoft/codebert-base...
+[INFO] This is a one-time operation. Subsequent runs will be near-instant.
+  > Progress: 356/356 (100.0%) | Est. Remaining: 0m 0s
+[OK] Intelligence Engine indexed with 356 patterns in 0m 0s.
+
+==================================================
+INITIALIZATION SUMMARY
+==================================================
+Raw Dataset Rules: 2849
+Governed Release Rules: 356
+Official Patterns: 39
+Indexed Trusted Rules: 356
+Trusted Rules Compatible With Target Pair: 356
+Trusted Target Runtime Dataset: corpus/validated_patterns/release/target_runtime_datasets/spring_3_0_0__micronaut_4_10_8.json
+Trusted Target Profile: line-aware (spring_line=3.0, micronaut_line=4.10)
+Trusted Line-Specific Rules: spring=15, micronaut=15, pair=15
+Trusted Compatible Rule Categories: annotations=39, code_patterns=287, configurations=2, dependencies=23, types=5
+Trusted Target Profile Report: corpus/validated_patterns/release/target_profiles/spring_3_0_0__micronaut_4_10_8.json
+Target Platform Managed Dependencies: 3549
+Target Platform Snapshot: corpus/validated_patterns/release/target_platforms/spring_3_0_0__micronaut_4_10_8.json
+Trusted DB Path: migration_db
+Trusted KB Manifest: migration_db/kb_manifest.json
+Governed Release Runtime Dataset: corpus/validated_patterns/release/runtime_dataset.json
+KB Smoke OK: True
+KB Smoke Report: corpus/validated_patterns/release/kb_smoke_report.json
+Chroma Audit Trust: high
+Distribution Ready: True
+Chroma Audit Report: corpus/validated_patterns/release/chroma_audit_report.json
+```
+
+What to look for in a healthy startup:
+- `status=reachable` for the configured LLM, if you expect LLM support
+- `engine=chromadb status=ready` for the vector DB
+- `initialized_for=Spring ... -> Micronaut ...` matching the exact version pair you initialized
+- `KB Smoke OK: True` during `init`
+- no early fatal error before `Starting migration from ...` during `migrate`
+
 ### 3. Usage
 Run the migration with a single command:
 ```bash
 python main.py migrate <path-to-spring-project> <path-to-output-directory>
 ```
 
+Build tool selection:
+- by default, the agent auto-detects the project build tool from the source tree
+- if the project contains only Maven files, it uses Maven
+- if the project contains only Gradle files, it uses Gradle
+- if both `pom.xml` and `build.gradle` or `build.gradle.kts` exist, explicitly pass `--build-tool maven` or `--build-tool gradle`
+
 ### 3A. Run The Bundled Sample
 
-If you want to test the repository sample end to end, use the Spring Petclinic project under [examples/spring/spring-petclinic](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/spring/spring-petclinic) as the source and [examples/micronaut](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/micronaut) as the generated output root.
+If you want to test the repository sample end to end, use the Spring Petclinic project under `examples/spring/spring-petclinic` as the source and `examples/micronaut` as the generated output root.
 
 Recommended sequence for the sample:
 
@@ -161,8 +244,8 @@ What these flags mean:
 - `--build-tool maven|gradle`: force the validation/build path when you want to test one build system explicitly
 
 Sample output location after migration:
-- generated project: [examples/micronaut/spring-petclinic](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/micronaut/spring-petclinic)
-- reports: [examples/micronaut/reports](/Users/ajpattar/rag-agent/Spring2Naut-RAG/examples/micronaut/reports)
+- generated project: `examples/micronaut/spring-petclinic`
+- reports: `examples/micronaut/reports`
 
 For enterprise migrations, pass explicit source and target versions so the agent can keep dependency selection aligned to the requested Micronaut line:
 ```bash
@@ -690,8 +773,8 @@ Why:
 - the release gate can still block GA even when many technical checks pass
 
 Use these two artifacts to judge readiness:
-- [docs/STRICT_GA_CHECKLIST.md](/Users/ajpattar/rag-agent/Spring2Naut-RAG/docs/STRICT_GA_CHECKLIST.md)
-- [reports/ga_release_gate_report.json](/Users/ajpattar/rag-agent/Spring2Naut-RAG/reports/ga_release_gate_report.json) after running `python3 scripts/run_ga_release_gate.py`
+- `docs/STRICT_GA_CHECKLIST.md`
+- `reports/ga_release_gate_report.json` after running `python3 scripts/run_ga_release_gate.py`
 - `Indexed Candidate Rules`: 75
 - `Raw Dataset Rules`: 2849
 - `Max Runtime Rules`: 6911
